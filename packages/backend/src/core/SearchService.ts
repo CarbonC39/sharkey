@@ -105,7 +105,7 @@ export type SearchOpts = {
 	channelId?: MiNote['channelId'] | null;
 	host?: string | null;
 	filetype?: FileTypeCategory;
-	order?: string | null;
+	order?: 'asc' | 'desc' | 'relevance' | null;
 	disableMeili?: boolean | null;
 };
 
@@ -113,6 +113,7 @@ export type SearchPagination = {
 	untilId?: MiNote['id'];
 	sinceId?: MiNote['id'];
 	limit: number;
+	offset?: number;
 };
 
 function compileValue(value: V): string {
@@ -276,7 +277,10 @@ export class SearchService {
 		opts: SearchOpts,
 		pagination: SearchPagination,
 	): Promise<MiNote[]> {
-		const query = this.queryService.makePaginationQuery(this.notesRepository.createQueryBuilder('note'), pagination.sinceId, pagination.untilId);
+		const relevanceOrder = opts.order === 'relevance';
+		const query = relevanceOrder
+			? this.notesRepository.createQueryBuilder('note')
+			: this.queryService.makePaginationQuery(this.notesRepository.createQueryBuilder('note'), pagination.sinceId, pagination.untilId);
 
 		if (opts.userId) {
 			query.andWhere('note.userId = :userId', { userId: opts.userId });
@@ -318,7 +322,43 @@ export class SearchService {
 		if (me) this.queryService.generateMutedUserQueryForNotes(query, me);
 		if (me) this.queryService.generateBlockedUserQueryForNotes(query, me);
 
-		return await query.limit(pagination.limit).getMany();
+		if (relevanceOrder) {
+			if (this.config.fulltextSearch?.provider === 'sqlTsvector') {
+				query
+					.addSelect('ts_rank_cd(note.tsvector_embedding, websearch_to_tsquery(:q))', 'search_relevance')
+					.orderBy('search_relevance', 'DESC')
+					.addOrderBy('note.id', 'DESC');
+			} else if (this.config.fulltextSearch?.provider === 'sqlPgroonga') {
+				query
+					.addSelect('pgroonga_score(note.tableoid, note.ctid)', 'search_relevance')
+					.orderBy('search_relevance', 'DESC')
+					.addOrderBy('note.id', 'DESC');
+			} else {
+				// LIKE has no provider score. Prefer an exact match, then a prefix
+				// match and finally the shortest match as a deterministic fallback.
+				query
+					.addSelect(`CASE
+						WHEN LOWER(COALESCE(note.text, '')) = :relevanceExact THEN 0
+						WHEN LOWER(COALESCE(note.text, '')) LIKE :relevancePrefix THEN 1
+						ELSE 2
+					END`, 'search_relevance')
+					.addSelect('CHAR_LENGTH(COALESCE(note.text, \'\'))', 'search_match_length')
+					.setParameters({
+						relevanceExact: q.toLocaleLowerCase(),
+						relevancePrefix: `${sqlLikeEscape(q.toLocaleLowerCase())}%`,
+					})
+					.orderBy('search_relevance', 'ASC')
+					.addOrderBy('search_match_length', 'ASC')
+					.addOrderBy('note.id', 'DESC');
+			}
+		} else if (opts.order === 'asc') {
+			query.orderBy('note.id', 'ASC');
+		}
+
+		return await query
+			.offset(relevanceOrder ? pagination.offset ?? 0 : undefined)
+			.limit(pagination.limit)
+			.getMany();
 	}
 
 	@bindThis
@@ -361,37 +401,62 @@ export class SearchService {
 			filter.qs.push({ op: 'or', qs: filters });
 		}
 
-		const res = await this.meilisearchNoteIndex.search(q, {
-			sort: [`createdAt:${opts.order ? opts.order : 'desc'}`],
-			matchingStrategy: 'all',
-			attributesToRetrieve: ['id', 'createdAt'],
-			filter: compileQuery(filter),
-			limit: pagination.limit,
-		});
-		if (res.hits.length === 0) {
-			return [];
+		const relevanceOrder = opts.order === 'relevance';
+		const visibleOffset = relevanceOrder ? pagination.offset ?? 0 : 0;
+		const batchSize = Math.min(100, Math.max(30, pagination.limit * 2));
+		const notes: MiNote[] = [];
+		let skippedVisibleNotes = 0;
+		let searchOffset = 0;
+
+		// Meilisearch cannot apply all of Sharkey's visibility, block, mute and
+		// suspension rules. Scan candidates in provider order and calculate the
+		// public offset only after those database-side filters have run. Otherwise
+		// a filtered hit would make offset pagination duplicate or skip notes.
+		while (notes.length < pagination.limit && searchOffset < 10000) {
+			const res = await this.meilisearchNoteIndex.search(q, {
+				...(relevanceOrder ? {} : { sort: [`createdAt:${opts.order ?? 'desc'}`] }),
+				matchingStrategy: 'all',
+				attributesToRetrieve: ['id', 'createdAt'],
+				filter: compileQuery(filter),
+				limit: Math.min(batchSize, 10000 - searchOffset),
+				offset: searchOffset,
+			});
+			if (res.hits.length === 0) break;
+			searchOffset += res.hits.length;
+
+			const query = this.notesRepository.createQueryBuilder('note')
+				.innerJoinAndSelect('note.user', 'user')
+				.leftJoinAndSelect('note.reply', 'reply')
+				.leftJoinAndSelect('note.renote', 'renote')
+				.leftJoinAndSelect('reply.user', 'replyUser')
+				.leftJoinAndSelect('renote.user', 'renoteUser')
+				.where('note.id IN (:...noteIds)', { noteIds: res.hits.map(x => x.id) });
+
+			this.queryService.generateBlockedHostQueryForNote(query);
+			this.queryService.generateSuspendedUserQueryForNote(query);
+			this.queryService.generateSilencedUserQueryForNotes(query, me);
+
+			if (me) {
+				this.queryService.generateBlockedUserQueryForNotes(query, me);
+				this.queryService.generateMutedUserQueryForNotes(query, me);
+			}
+
+			const resultOrder = new Map(res.hits.map((hit, index) => [hit.id, index]));
+			const visibleNotes = (await query.getMany())
+				.sort((a, b) => (resultOrder.get(a.id) ?? 0) - (resultOrder.get(b.id) ?? 0));
+
+			for (const note of visibleNotes) {
+				if (skippedVisibleNotes < visibleOffset) {
+					skippedVisibleNotes++;
+					continue;
+				}
+				notes.push(note);
+				if (notes.length === pagination.limit) break;
+			}
+
+			if (res.hits.length < batchSize) break;
 		}
 
-		const query = this.notesRepository.createQueryBuilder('note')
-			.innerJoinAndSelect('note.user', 'user')
-			.leftJoinAndSelect('note.reply', 'reply')
-			.leftJoinAndSelect('note.renote', 'renote')
-			.leftJoinAndSelect('reply.user', 'replyUser')
-			.leftJoinAndSelect('renote.user', 'renoteUser');
-
-		query.where('note.id IN (:...noteIds)', { noteIds: res.hits.map(x => x.id) });
-
-		this.queryService.generateBlockedHostQueryForNote(query);
-		this.queryService.generateSuspendedUserQueryForNote(query);
-		this.queryService.generateSilencedUserQueryForNotes(query, me);
-
-		if (me) {
-			this.queryService.generateBlockedUserQueryForNotes(query, me);
-			this.queryService.generateMutedUserQueryForNotes(query, me);
-		}
-
-		const notes = await query.getMany();
-
-		return notes.sort((a, b) => a.id > b.id ? -1 : 1);
+		return notes;
 	}
 }

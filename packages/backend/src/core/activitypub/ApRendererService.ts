@@ -27,7 +27,7 @@ import { DriveFileEntityService } from '@/core/entities/DriveFileEntityService.j
 import type { MiUserKeypair } from '@/models/UserKeypair.js';
 import type { UsersRepository, UserProfilesRepository, NotesRepository, DriveFilesRepository, PollsRepository, InstancesRepository, MiMeta } from '@/models/_.js';
 import { bindThis } from '@/decorators.js';
-import { CustomEmojiService } from '@/core/CustomEmojiService.js';
+import { CustomEmojiService, encodeEmojiKey } from '@/core/CustomEmojiService.js';
 import { IdService } from '@/core/IdService.js';
 import { appendContentWarning } from '@/misc/append-content-warning.js';
 import { QueryService } from '@/core/QueryService.js';
@@ -359,10 +359,33 @@ export class ApRendererService {
 		};
 
 		if (reaction.startsWith(':')) {
-			const name = reaction.replaceAll(':', '');
-			const emoji = await this.customEmojiService.emojisByKeyCache.fetchMaybe(name);
+			const decodedReaction = /^:([\p{Letter}\p{Number}\p{Mark}_+-]+)(?:@([\w.-]+))?:$/u.exec(reaction);
+			const name = decodedReaction?.[1];
+			const host = decodedReaction?.[2] ?? null;
+			const emojiKey = name == null ? null : encodeEmojiKey({ name, host });
+			const emoji = emojiKey == null ? null : await this.customEmojiService.emojisByKeyCache.fetchMaybe(emojiKey);
 
-			if (emoji && !emoji.localOnly) object.tag = [this.renderEmoji(emoji)];
+			if (emoji && !emoji.localOnly) {
+				if (emoji.host == null) {
+					object.tag = [this.renderEmoji(emoji)];
+				} else if (emoji.uri != null) {
+					// Never relay a third-party URI as belonging to the emoji host. The
+					// icon URL can legitimately live on a CDN, but the object ID is the
+					// authority that identifies the emoji itself.
+					try {
+						const protocol = new URL(emoji.uri).protocol;
+						if (
+							(protocol === 'https:' || protocol === 'http:') &&
+							this.utilityService.isFederationAllowedHost(emoji.host) &&
+							this.utilityService.punyHost(emoji.uri) === emoji.host
+						) {
+							object.tag = [{ ...this.renderEmoji(emoji), id: emoji.uri }];
+						}
+					} catch {
+						// A malformed cached URI is not safe to federate as an emoji ID.
+					}
+				}
+			}
 		}
 
 		return object;

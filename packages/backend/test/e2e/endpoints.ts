@@ -9,7 +9,8 @@ import * as assert from 'assert';
 // node-fetch only supports it's own Blob yet
 // https://github.com/node-fetch/node-fetch/pull/1664
 import { Blob } from 'node-fetch';
-import { MiUser } from '@/models/_.js';
+import { MiEmoji, MiNote, MiNoteReaction, MiUser } from '@/models/_.js';
+import { genAidx } from '@/misc/id/aidx.js';
 import { api, castAsError, initTestDb, post, signup, simpleGet, uploadFile } from '../utils.js';
 import type * as misskey from 'misskey-js';
 
@@ -214,6 +215,39 @@ describe('Endpoints', () => {
 	});
 
 	describe('notes/reactions/create', () => {
+		async function seedRemoteReaction(noteId: string, userId: string, reaction: `:${string}@${string}:`, url: string) {
+			const match = /^:([^:]+)@([^:]+):$/.exec(reaction);
+			assert.ok(match);
+
+			const connection = await initTestDb(true);
+			await connection.getRepository(MiEmoji).insert({
+				id: genAidx(Date.now()),
+				updatedAt: new Date(),
+				name: match[1],
+				host: match[2],
+				category: null,
+				originalUrl: url,
+				publicUrl: url,
+				uri: `https://${match[2]}/emojis/${match[1]}`,
+				type: 'image/png',
+				aliases: [],
+				license: null,
+				localOnly: false,
+				isSensitive: false,
+				roleIdsThatCanBeUsedThisEmojiAsReaction: [],
+			});
+			await connection.getRepository(MiNoteReaction).insert({
+				id: genAidx(Date.now()),
+				noteId,
+				userId,
+				reaction,
+			});
+			await connection.getRepository(MiNote).update(noteId, {
+				reactions: { [reaction]: 1 },
+			});
+			await connection.destroy();
+		}
+
 		test('リアクションできる', async () => {
 			const bobPost = await post(bob, { text: 'hi' });
 
@@ -241,6 +275,59 @@ describe('Endpoints', () => {
 			}, alice);
 
 			assert.strictEqual(res.status, 204);
+		});
+
+		test('既存のremoteカスタム絵文字リアクションに+1できる', async () => {
+			const bobPost = await post(bob, { text: 'hi' });
+			const reaction = ':remote_plus_one@remote.example:' as const;
+			await seedRemoteReaction(bobPost.id, bob.id, reaction, 'https://cdn.remote.example/remote_plus_one.png');
+
+			const res = await api('notes/reactions/create', {
+				noteId: bobPost.id,
+				reaction,
+			}, alice);
+
+			assert.strictEqual(res.status, 204);
+			const resNote = await api('notes/show', { noteId: bobPost.id }, alice);
+			assert.strictEqual(resNote.status, 200);
+			assert.strictEqual(resNote.body.reactions[reaction], 2);
+			assert.strictEqual(resNote.body.reactionEmojis['remote_plus_one@remote.example'], 'https://cdn.remote.example/remote_plus_one.png');
+		});
+
+		test('同名でも投稿に存在しないhostのremote絵文字は再利用できない', async () => {
+			const bobPost = await post(bob, { text: 'hi' });
+			const existingReaction = ':same_name@first.example:' as const;
+			await seedRemoteReaction(bobPost.id, bob.id, existingReaction, 'https://first.example/same_name.png');
+
+			const connection = await initTestDb(true);
+			await connection.getRepository(MiEmoji).insert({
+				id: genAidx(Date.now()),
+				updatedAt: new Date(),
+				name: 'same_name',
+				host: 'second.example',
+				category: null,
+				originalUrl: 'https://second.example/same_name.png',
+				publicUrl: 'https://second.example/same_name.png',
+				uri: 'https://second.example/emojis/same_name',
+				type: 'image/png',
+				aliases: [],
+				license: null,
+				localOnly: false,
+				isSensitive: false,
+				roleIdsThatCanBeUsedThisEmojiAsReaction: [],
+			});
+			await connection.destroy();
+
+			const res = await api('notes/reactions/create', {
+				noteId: bobPost.id,
+				reaction: ':same_name@second.example:',
+			}, alice);
+
+			assert.strictEqual(res.status, 204);
+			const reactions = await api('notes/reactions', { noteId: bobPost.id });
+			const aliceReaction = reactions.body.find((item: { user: { id: string } }) => item.user.id === alice.id);
+			assert.ok(aliceReaction);
+			assert.strictEqual(aliceReaction.type, '\u2764');
 		});
 
 		test('二重にリアクションすると上書きされる', async () => {

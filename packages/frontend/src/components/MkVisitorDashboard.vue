@@ -15,8 +15,8 @@ SPDX-License-Identifier: AGPL-3.0-only
 				<span>{{ instanceName }}</span>
 			</h1>
 			<div :class="$style.mainAbout">
-				<!-- eslint-disable-next-line vue/no-v-html -->
-				<div v-html="sanitizeHtml(instance.description) || i18n.ts.headlineMisskey"></div>
+				<Mfm v-if="instance.description" :text="instance.description" :isBlock="true" :isNote="false"/>
+				<div v-else>{{ i18n.ts.headlineMisskey }}</div>
 			</div>
 			<div v-if="instance.about && instance.description !== instance.about" :class=$style.showMore>
 				<p><a href="/about">{{ i18n.ts.showMore }}</a></p>
@@ -61,7 +61,6 @@ SPDX-License-Identifier: AGPL-3.0-only
 <script lang="ts" setup>
 import { ref } from 'vue';
 import * as Misskey from 'misskey-js';
-import sanitizeHtml from '@/utility/sanitize-html.js';
 import XSigninDialog from '@/components/MkSigninDialog.vue';
 import XSignupDialog from '@/components/MkSignupDialog.vue';
 import MkButton from '@/components/MkButton.vue';

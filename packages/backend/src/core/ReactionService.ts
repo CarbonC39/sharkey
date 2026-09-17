@@ -169,7 +169,39 @@ export class ReactionService implements OnModuleInit {
 					reaction = FALLBACK;
 				}
 			} else {
-				reaction = this.normalize(reaction);
+				const remoteCustom = reaction.match(decodeCustomEmojiRegexp);
+				const remoteHost = remoteCustom?.[2] === '.' ? null : this.utilityService.toPunyNullable(remoteCustom?.[2]);
+
+				// A remote custom emoji may only be reused from an existing reaction on
+				// this note. In particular, the API never accepts an emoji URL from the
+				// client: the canonical (name, host) record must already have been learned
+				// through federation. This also keeps same-named emoji from different
+				// hosts in separate namespaces.
+				if (remoteCustom?.[1] != null && remoteHost != null && !this.utilityService.isSelfHost(remoteHost)) {
+					const name = remoteCustom[1];
+					const canonicalReaction = `:${name}@${remoteHost}:`;
+					const alreadyUsedOnNote = await this.noteReactionsRepository.existsBy({
+						noteId: note.id,
+						reaction: canonicalReaction,
+					});
+					const emojiKey = encodeEmojiKey({ name, host: remoteHost });
+					const emoji = alreadyUsedOnNote
+						? await this.customEmojiService.emojisByKeyCache.fetchMaybe(emojiKey)
+						: null;
+
+					if (
+						emoji != null &&
+						this.utilityService.isFederationAllowedHost(remoteHost) &&
+						!this.utilityService.isMediaSilencedHost(this.meta.mediaSilencedHosts, remoteHost) &&
+						!((note.reactionAcceptance === 'nonSensitiveOnly' || note.reactionAcceptance === 'nonSensitiveOnlyForLocalLikeOnlyForRemote') && emoji.isSensitive)
+					) {
+						reaction = canonicalReaction;
+					} else {
+						reaction = FALLBACK;
+					}
+				} else {
+					reaction = this.normalize(reaction);
+				}
 			}
 		}
 

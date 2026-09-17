@@ -41958,7 +41958,8 @@ export interface operations {
                      * @default null
                      */
                     channelId?: string | null;
-                    order?: string;
+                    /** @default desc */
+                    order?: 'asc' | 'desc' | 'relevance';
                 };
             };
         };
@@ -49233,4 +49234,3 @@ export interface operations {
         };
     };
 }
-

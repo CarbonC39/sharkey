@@ -547,6 +547,10 @@ _genKeysDialog:
 
 _noteSearch:
   newestToOldest: "从新到旧排序"
+  sortMode: "排序方式"
+  _sortMode:
+    date: "时间（从新到旧）"
+    relevance: "相关性"
   fileType: "文件类型"
   _fileType:
     none: "无"

@@ -54,9 +54,15 @@ const buttonEl = useTemplateRef('buttonEl');
 
 const emojiName = computed(() => props.reaction.replace(/:/g, '').replace(/@\./, ''));
 const emoji = computed(() => customEmojisMap.get(emojiName.value) ?? getUnicodeEmoji(props.reaction));
+const isRemoteCustomEmoji = computed(() => /^:[^:]+@[^:.][^:]*:$/.test(props.reaction));
+const remoteCustomEmojiUrl = computed(() => props.note.reactionEmojis[props.reaction.slice(1, -1)]);
 
 const canToggle = computed(() => {
-	return !props.reaction.match(/@\w/) && $i && emoji.value && checkReactionPermissions($i, props.note, emoji.value);
+	if (!$i) return false;
+	if (isRemoteCustomEmoji.value) {
+		return remoteCustomEmojiUrl.value != null && props.note.reactionAcceptance !== 'likeOnly';
+	}
+	return emoji.value != null && checkReactionPermissions($i, props.note, emoji.value);
 });
 const canGetInfo = computed(() => !props.reaction.match(/@\w/) && props.reaction.includes(':'));
 

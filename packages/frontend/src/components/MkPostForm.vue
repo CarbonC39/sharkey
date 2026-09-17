@@ -1538,7 +1538,8 @@ defineExpose({
 	max-width: 100%;
 	min-width: 100%;
 	width: 100%;
-	min-height: 5.85em;
+	line-height: 1.5;
+	min-height: 9em;
 	height: 100%;
 }
 

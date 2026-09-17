@@ -117,6 +117,7 @@ SPDX-License-Identifier: AGPL-3.0-only
 <script lang="ts" setup>
 import { ref, useTemplateRef, computed, watch, onMounted } from 'vue';
 import * as Misskey from 'misskey-js';
+import { lang } from '@@/js/config.js';
 import {
 	emojilist,
 	emojiCharByCategory,
@@ -128,6 +129,7 @@ import type {
 	UnicodeEmojiDef,
 	CustomEmojiFolderTree,
 } from '@@/js/emojilist.js';
+import type { UnicodeEmojiIndex } from '@/utility/search-unicode-emoji.js';
 import XSection from '@/components/MkEmojiPicker.section.vue';
 import MkRippleEffect from '@/components/MkRippleEffect.vue';
 import * as os from '@/os.js';
@@ -139,6 +141,7 @@ import { customEmojiCategories, customEmojis, customEmojisMap } from '@/custom-e
 import { $i } from '@/i.js';
 import { checkReactionPermissions } from '@/utility/check-reaction-permissions.js';
 import { prefer } from '@/preferences.js';
+import { searchUnicodeEmoji } from '@/utility/search-unicode-emoji.js';
 
 const props = withDefaults(defineProps<{
 	showPinned?: boolean;
@@ -185,6 +188,7 @@ const height = computed(() => emojiPickerHeight.value);
 const q = ref<string>('');
 const searchResultCustom = ref<Misskey.entities.EmojiSimple[]>([]);
 const searchResultUnicode = ref<UnicodeEmojiDef[]>([]);
+const bundledUnicodeEmojiIndexes = ref<UnicodeEmojiIndex[]>([]);
 const tab = ref<'index' | 'custom' | 'unicode' | 'tags'>('index');
 
 const customEmojiFolderRoot = computed<CustomEmojiFolderTree>(() => {
@@ -222,7 +226,7 @@ const customEmojiFolderRoot = computed<CustomEmojiFolderTree>(() => {
 	return root;
 });
 
-watch(q, () => {
+function updateSearchResults() {
 	if (emojisEl.value) emojisEl.value.scrollTop = 0;
 
 	const query = q.value.trim();
@@ -311,74 +315,27 @@ watch(q, () => {
 		return matches;
 	};
 
-	const searchUnicode = () => {
-		const max = 100;
-		const emojis = emojilist;
-		const matches = new Set<UnicodeEmojiDef>();
-
-		const exactMatch = emojis.find(emoji => emoji.name === newQ);
-		if (exactMatch) matches.add(exactMatch);
-
-		if (newQ.includes(' ')) { // AND検索
-			const keywords = newQ.split(' ');
-
-			for (const emoji of emojis) {
-				if (keywords.every(keyword => emoji.name.includes(keyword))) {
-					matches.add(emoji);
-					if (matches.size >= max) break;
-				}
-			}
-			if (matches.size >= max) return matches;
-
-			for (const index of Object.values(store.s.additionalUnicodeEmojiIndexes)) {
-				for (const emoji of emojis) {
-					if (keywords.every(keyword => index[emoji.char].some(k => k.includes(keyword)))) {
-						matches.add(emoji);
-						if (matches.size >= max) break;
-					}
-				}
-			}
-		} else {
-			for (const emoji of emojis) {
-				if (emoji.name.startsWith(newQ)) {
-					matches.add(emoji);
-					if (matches.size >= max) break;
-				}
-			}
-			if (matches.size >= max) return matches;
-
-			for (const index of Object.values(store.s.additionalUnicodeEmojiIndexes)) {
-				for (const emoji of emojis) {
-					if (index[emoji.char].some(k => k.startsWith(newQ))) {
-						matches.add(emoji);
-						if (matches.size >= max) break;
-					}
-				}
-			}
-
-			for (const emoji of emojis) {
-				if (emoji.name.includes(newQ)) {
-					matches.add(emoji);
-					if (matches.size >= max) break;
-				}
-			}
-			if (matches.size >= max) return matches;
-
-			for (const index of Object.values(store.s.additionalUnicodeEmojiIndexes)) {
-				for (const emoji of emojis) {
-					if (index[emoji.char].some(k => k.includes(newQ))) {
-						matches.add(emoji);
-						if (matches.size >= max) break;
-					}
-				}
-			}
-		}
-
-		return matches;
-	};
-
 	searchResultCustom.value = Array.from(searchCustom());
-	searchResultUnicode.value = Array.from(searchUnicode());
+	searchResultUnicode.value = searchUnicodeEmoji(newQ, emojilist, [
+		...bundledUnicodeEmojiIndexes.value,
+		...Object.values(store.s.additionalUnicodeEmojiIndexes),
+	]);
+}
+
+watch(q, updateSearchResults);
+
+// The Simplified Chinese dictionary is available in the picker without a
+// separate setting. Traditional Chinese is additionally loaded for zh-TW.
+// Dynamic imports keep these locale indexes out of the initial application
+// bundle and re-run an in-progress search as soon as they are ready.
+Promise.all([
+	import('../unicode-emoji-indexes/zh-CN.json').then(module => module.default),
+	...(lang === 'zh-TW'
+		? [import('../unicode-emoji-indexes/zh-TW.json').then(module => module.default)]
+		: []),
+]).then(indexes => {
+	bundledUnicodeEmojiIndexes.value = indexes;
+	updateSearchResults();
 });
 
 function canReact(emoji: Misskey.entities.EmojiSimple | UnicodeEmojiDef | string): boolean {

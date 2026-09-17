@@ -557,6 +557,10 @@ _genKeysDialog:
 
 _noteSearch:
   newestToOldest: "Sort by newest to oldest"
+  sortMode: "Sort by"
+  _sortMode:
+    date: "Time (newest first)"
+    relevance: "Relevance"
   fileType: "File Type"
   _fileType:
     none: "None"

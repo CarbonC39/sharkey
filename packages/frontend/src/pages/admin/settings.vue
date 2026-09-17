@@ -24,7 +24,7 @@ SPDX-License-Identifier: AGPL-3.0-only
 						<template #caption>{{ i18n.ts._serverSettings.shortNameDescription }}</template>
 					</MkInput>
 
-					<MkTextarea v-model="infoForm.state.description">
+					<MkTextarea v-model="infoForm.state.description" mfmAutocomplete :mfmPreview="true" :mfmPreviewIsNote="false">
 						<template #label>{{ i18n.ts.instanceDescription }}<span v-if="infoForm.modifiedStates.description" class="_modified">{{ i18n.ts.modified }}</span></template>
 					</MkTextarea>
 

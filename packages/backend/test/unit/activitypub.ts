@@ -21,6 +21,7 @@ import type {
 	UserKeypairsRepository,
 	UsersRepository,
 	NotesRepository,
+	EmojisRepository,
 	UserNotePiningsRepository,
 	MetasRepository,
 } from '@/models/_.js';
@@ -28,6 +29,7 @@ import type { IActor, IApDocument, ICollection, IObject, IPost } from '@/core/ac
 import { MiUser, type MiLocalUser, type MiRemoteUser } from '@/models/User.js';
 import { MiUserKeypair } from '@/models/UserKeypair.js';
 import { MiNote } from '@/models/Note.js';
+import type { MiNoteReaction } from '@/models/NoteReaction.js';
 import { QueueService } from '@/core/QueueService.js';
 import { ApImageService } from '@/core/activitypub/models/ApImageService.js';
 import { ApNoteService } from '@/core/activitypub/models/ApNoteService.js';
@@ -119,6 +121,7 @@ describe('ActivityPub', () => {
 	let cacheManagementService: CacheManagementService;
 	let mockConsole: MockConsole;
 	let notesRepository: NotesRepository;
+	let emojisRepository: EmojisRepository;
 	let userNotePiningsRepository: UserNotePiningsRepository;
 
 	// This extends metaInitial, which extends the database-default meta
@@ -207,6 +210,7 @@ describe('ActivityPub', () => {
 		cacheManagementService = app.get(CacheManagementService);
 		mockConsole = app.get<MockConsole>(DI.console);
 		notesRepository = app.get<NotesRepository>(DI.notesRepository);
+		emojisRepository = app.get<EmojisRepository>(DI.emojisRepository);
 		userNotePiningsRepository = app.get<UserNotePiningsRepository>(DI.userNotePiningsRepository);
 		meta = app.get<MiMeta>(DI.meta);
 	});
@@ -362,6 +366,70 @@ describe('ActivityPub', () => {
 				id: genAidx(Date.now()),
 				visibility: 'followers',
 			} as MiNote);
+		});
+
+		test('Render an existing remote custom emoji reaction with its original identity', async () => {
+			const name = `remote_${secureRndstr(8)}`;
+			const emojiHost = 'emoji.example';
+			const emojiUri = `https://${emojiHost}/emojis/${name}`;
+			await emojisRepository.insert({
+				id: idService.gen(),
+				updatedAt: new Date(),
+				name,
+				host: emojiHost,
+				category: null,
+				originalUrl: `https://cdn.example/${name}.png`,
+				publicUrl: `https://cdn.example/${name}.png`,
+				uri: emojiUri,
+				type: 'image/png',
+				aliases: [],
+				license: null,
+				localOnly: false,
+				isSensitive: false,
+				roleIdsThatCanBeUsedThisEmojiAsReaction: [],
+			});
+
+			const rendered = await rendererService.renderLike({
+				id: idService.gen(),
+				noteId: idService.gen(),
+				userId: idService.gen(),
+				reaction: `:${name}@${emojiHost}:`,
+			} as MiNoteReaction, { uri: 'https://note.example/notes/1' });
+
+			assert.strictEqual(rendered._misskey_reaction, `:${name}@${emojiHost}:`);
+			assert.ok(Array.isArray(rendered.tag));
+			assert.strictEqual(rendered.tag[0].id, emojiUri);
+			assert.strictEqual(rendered.tag[0].icon?.url, `https://cdn.example/${name}.png`);
+		});
+
+		test('Do not federate a remote emoji tag whose URI claims another authority', async () => {
+			const name = `forged_${secureRndstr(8)}`;
+			const emojiHost = 'emoji.example';
+			await emojisRepository.insert({
+				id: idService.gen(),
+				updatedAt: new Date(),
+				name,
+				host: emojiHost,
+				category: null,
+				originalUrl: `https://cdn.example/${name}.png`,
+				publicUrl: `https://cdn.example/${name}.png`,
+				uri: `https://attacker.example/emojis/${name}`,
+				type: 'image/png',
+				aliases: [],
+				license: null,
+				localOnly: false,
+				isSensitive: false,
+				roleIdsThatCanBeUsedThisEmojiAsReaction: [],
+			});
+
+			const rendered = await rendererService.renderLike({
+				id: idService.gen(),
+				noteId: idService.gen(),
+				userId: idService.gen(),
+				reaction: `:${name}@${emojiHost}:`,
+			} as MiNoteReaction, { uri: 'https://note.example/notes/1' });
+
+			assert.strictEqual(rendered.tag, undefined);
 		});
 	});
 

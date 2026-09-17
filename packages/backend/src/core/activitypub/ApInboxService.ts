@@ -9,7 +9,7 @@ import * as Bull from 'bullmq';
 import { DI } from '@/di-symbols.js';
 import type { Config } from '@/config.js';
 import { UserFollowingService } from '@/core/UserFollowingService.js';
-import { ReactionService } from '@/core/ReactionService.js';
+import { decodeReaction, ReactionService } from '@/core/ReactionService.js';
 import { RelayService } from '@/core/RelayService.js';
 import { NotePiningService } from '@/core/NotePiningService.js';
 import { UserBlockingService } from '@/core/UserBlockingService.js';
@@ -222,10 +222,19 @@ export class ApInboxService {
 			throw new IdentifiableError('12e23cec-edd9-442b-aa48-9c21f0c3b215', 'Cannot react to local-only note');
 		}
 
-		await this.apNoteService.extractEmojis(activity.tag ?? [], actor.host).catch(() => null);
+		const reaction = activity._misskey_reaction ?? activity.content ?? activity.name;
+		const decodedReaction = typeof reaction === 'string' ? decodeReaction(reaction) : null;
+
+		// An explicitly host-qualified reaction is only accepted when the target
+		// note already has that exact reaction and the emoji is already cached.
+		// Do not let a different actor host overwrite/cache a forged third-party
+		// emoji URL from the activity's tag.
+		if (decodedReaction?.host == null) {
+			await this.apNoteService.extractEmojis(activity.tag ?? [], actor.host).catch(() => null);
+		}
 
 		try {
-			await this.reactionService.create(actor, note, activity._misskey_reaction ?? activity.content ?? activity.name);
+			await this.reactionService.create(actor, note, reaction);
 			return 'ok';
 		} catch (err) {
 			if (err instanceof IdentifiableError && err.id === '51c42bb4-931a-456b-bff7-e5a8a70dd298') {

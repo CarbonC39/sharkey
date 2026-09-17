@@ -13095,6 +13095,20 @@ export interface Locale extends ILocale {
          */
         "newestToOldest": string;
         /**
+         * Sort by
+         */
+        "sortMode": string;
+        "_sortMode": {
+            /**
+             * Time (newest first)
+             */
+            "date": string;
+            /**
+             * Relevance
+             */
+            "relevance": string;
+        };
+        /**
          * File Type
          */
         "fileType": string;

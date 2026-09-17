@@ -47,7 +47,7 @@ export const paramDef = {
 		sinceId: { type: 'string', format: 'misskey:id' },
 		untilId: { type: 'string', format: 'misskey:id' },
 		limit: { type: 'integer', minimum: 1, maximum: 100, default: 10 },
-		offset: { type: 'integer', default: 0 },
+		offset: { type: 'integer', minimum: 0, default: 0 },
 		host: {
 			type: 'string',
 			description: 'The local host is represented with `.`.',
@@ -59,7 +59,7 @@ export const paramDef = {
 		},
 		userId: { type: 'string', format: 'misskey:id', nullable: true, default: null },
 		channelId: { type: 'string', format: 'misskey:id', nullable: true, default: null },
-		order: { type: 'string' },
+		order: { type: 'string', enum: ['asc', 'desc', 'relevance'], default: 'desc' },
 	},
 	required: ['query'],
 } as const;
@@ -89,6 +89,7 @@ export default class extends Endpoint<typeof meta, typeof paramDef> { // eslint-
 				untilId: ps.untilId,
 				sinceId: ps.sinceId,
 				limit: ps.limit,
+				offset: ps.offset,
 			});
 
 			return await this.noteEntityService.packMany(notes, me);

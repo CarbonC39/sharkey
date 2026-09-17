@@ -37,7 +37,11 @@ SPDX-License-Identifier: AGPL-3.0-only
 					</MkInput>
 				</div>
 
-				<MkSwitch v-model="order">{{ i18n.ts._noteSearch.newestToOldest }}</MkSwitch>
+				<MkRadios v-model="sortMode">
+					<template #label>{{ i18n.ts._noteSearch.sortMode }}</template>
+					<option value="date">{{ i18n.ts._noteSearch._sortMode.date }}</option>
+					<option value="relevance">{{ i18n.ts._noteSearch._sortMode.relevance }}</option>
+				</MkRadios>
 
 				<MkSelect v-model="filetype" small>
 					<template #label>{{ i18n.ts._noteSearch.fileType }}</template>
@@ -140,7 +144,6 @@ import MkInput from '@/components/MkInput.vue';
 import MkNotes from '@/components/MkNotes.vue';
 import MkRadios from '@/components/MkRadios.vue';
 import MkUserCardMini from '@/components/MkUserCardMini.vue';
-import MkSwitch from '@/components/MkSwitch.vue';
 import MkSelect from '@/components/MkSelect.vue';
 
 const props = withDefaults(defineProps<{
@@ -162,7 +165,7 @@ const notePagination = ref<Paging<'notes/search'>>();
 
 const searchQuery = ref(toRef(props, 'query').value);
 const hostInput = ref(toRef(props, 'host').value);
-const order = ref(false);
+const sortMode = ref<'date' | 'relevance'>('date');
 const filetype = ref<'image' | 'video' | 'audio' | 'module' | 'flash' | null>(null);
 
 const user = shallowRef<Misskey.entities.UserDetailed | null>(null);
@@ -318,9 +321,10 @@ async function search() {
 	notePagination.value = {
 		endpoint: 'notes/search',
 		limit: 10,
+		offsetMode: sortMode.value === 'relevance',
 		params: {
 			...searchParams.value,
-			order: order.value ? 'desc' : 'asc',
+			order: sortMode.value === 'date' ? 'desc' : 'relevance',
 			filetype: filetype.value,
 		},
 	};
