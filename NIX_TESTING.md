@@ -102,7 +102,10 @@ development watchers with a generated config. Open only the backend-served
 app at `http://127.0.0.1:61812`; Vite's server is an internal HMR dependency,
 not the browser entry point. The generated development URL is
 `http://127.0.0.1:61812`, so no `/etc/hosts` entry or production domain is
-needed. Extra arguments are forwarded to `pnpm dev`.
+needed. The helper prints the URL and a not-ready notice before starting the
+watchers; the first build may take a few minutes, so wait for the backend and
+Vite watcher startup messages before opening the page. Extra arguments are
+forwarded to `pnpm dev`.
 
 The notes search endpoint is intentionally disabled by the default role policy
 (`canSearchNotes: false`). To test search in this disposable instance, open

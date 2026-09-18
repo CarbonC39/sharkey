@@ -375,8 +375,12 @@ export function loadConfig(logger?: Logger): Config {
 
 	const meta = JSON.parse(fs.readFileSync(`${_dirname}/../../../built/meta.json`, 'utf-8'));
 
-	const frontendManifestExists = fs.existsSync(_dirname + '/../../../built/_frontend_vite_/manifest.json');
-	const frontendEmbedManifestExists = fs.existsSync(_dirname + '/../../../built/_frontend_embed_vite_/manifest.json');
+	// A development server may leave production manifests in `built/` after a
+	// previous build. They must not make the backend serve stale static assets:
+	// dev mode uses the Vite proxy and its live entry points instead.
+	const isDevelopment = process.env.NODE_ENV === 'development';
+	const frontendManifestExists = !isDevelopment && fs.existsSync(_dirname + '/../../../built/_frontend_vite_/manifest.json');
+	const frontendEmbedManifestExists = !isDevelopment && fs.existsSync(_dirname + '/../../../built/_frontend_embed_vite_/manifest.json');
 	const frontendManifest = frontendManifestExists ?
 		JSON.parse(fs.readFileSync(`${_dirname}/../../../built/_frontend_vite_/manifest.json`, 'utf-8'))
 		: { 'src/_boot_.ts': { file: 'src/_boot_.ts' } };

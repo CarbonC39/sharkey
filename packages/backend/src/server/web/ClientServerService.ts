@@ -254,6 +254,7 @@ export class ClientServerService {
 				upstream: `http://localhost:${port}`,
 				prefix: '/vite',
 				rewritePrefix: '/vite',
+				websocket: true,
 			});
 
 			const embedPort = (this.envService.env.EMBED_VITE_PORT ?? '5174');
@@ -261,6 +262,7 @@ export class ClientServerService {
 				upstream: `http://localhost:${embedPort}`,
 				prefix: '/embed_vite',
 				rewritePrefix: '/embed_vite',
+				websocket: true,
 			});
 		}
 		//#endregion

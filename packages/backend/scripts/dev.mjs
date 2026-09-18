@@ -7,6 +7,8 @@ import { execa, execaNode } from 'execa';
 
 /** @type {import('execa').ResultPromise | undefined} */
 let backendProcess;
+let restartQueued = false;
+let restarting = false;
 
 async function execBuildAssets() {
 	await execa('pnpm', ['run', 'build-assets'], {
@@ -37,6 +39,37 @@ async function killProc() {
 	}
 }
 
+async function processRestarts() {
+	if (restarting) return;
+
+	restarting = true;
+	try {
+		while (restartQueued) {
+			restartQueued = false;
+			// Keep this order: the backend must not start while build-assets is
+			// still updating the files it serves.
+			await killProc();
+			await execBuildAssets();
+			execStart();
+		}
+	} catch (error) {
+		console.error('Failed to restart backend:', error);
+		restartQueued = false;
+		process.exitCode ||= 1;
+	} finally {
+		restarting = false;
+		// A file change can arrive after the loop observes an empty queue but
+		// before this function releases the guard. Consume that request after
+		// releasing the guard instead of leaving it stranded.
+		if (restartQueued) void processRestarts();
+	}
+}
+
+function requestRestart() {
+	restartQueued = true;
+	void processRestarts();
+}
+
 (async () => {
 	execaNode(
 		'./node_modules/nodemon/bin/nodemon.js',
@@ -49,15 +82,14 @@ async function killProc() {
 			stdio: [process.stdin, process.stdout, process.stderr, 'ipc'],
 			serialization: "json",
 		})
-		.on('message', /** @param {{type: string}} message */ async (message) => {
+		.on('message', /** @param {{type: string}} message */ (message) => {
 			if (message.type === 'exit') {
 				// かならずbuild->build-assetsの順番で呼び出したいので、
 				// 少々トリッキーだがnodemonからのexitイベントを利用してbuild-assets->startを行う。
-				// pnpm restartをbuildが終わる前にbuild-assetsが動いてしまうので、バラバラに呼び出す必要がある
-
-				await killProc();
-				await execBuildAssets();
-				execStart();
+				// pnpm restartをbuildが終わる前にbuild-assetsが動いてしまうので、バラバラにする。
+				// nodemon may emit multiple exit messages while files are changing; queue them
+				// so two backend processes can never be started concurrently.
+				requestRestart();
 			}
 		});
 })();

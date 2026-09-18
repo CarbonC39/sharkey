@@ -332,6 +332,8 @@ case "${1:-}" in
 		start_environment
 		run_with_dev_env pnpm --filter backend build
 		migrate_dev_backend
+		note "starting development server; the first build can take a few minutes"
+		note "URL: http://127.0.0.1:$TEST_PORT (wait for the backend and Vite watchers to report ready before opening it)"
 		run_with_dev_env pnpm dev "$@"
 		;;
 	unit)

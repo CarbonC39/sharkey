@@ -27,6 +27,7 @@ import { InternalEventService } from '@/global/InternalEventService.js';
 import { NoteVisibilityService } from '@/core/NoteVisibilityService.js';
 import { IdentifiableError, errorCodes } from '@/misc/identifiable-error.js';
 import { WebSocketUser } from '@/server/api/stream/WebSocketUser.js';
+import { isStreamingUpgradeRequest } from './is-streaming-upgrade-request.js';
 import { AuthenticateService, AuthenticationError } from './AuthenticateService.js';
 import {
 	Connection,
@@ -134,6 +135,8 @@ export class StreamingApiServerService implements BeforeApplicationShutdown {
 
 	@bindThis
 	private async onServerUpgrade(request: http.IncomingMessage, socket: stream.Duplex, head: Buffer): Promise<void> {
+		if (!isStreamingUpgradeRequest(request)) return;
+
 		const authResult = await this.authenticateServerUpgrade(request);
 
 		// Step 2: pass Upgrade from HTTPS to WS.
