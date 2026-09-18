@@ -69,8 +69,9 @@
 - “常用 Markdown”固定置顶，包含粗体、斜体、删除线、链接、引用、行内代码和代码块。
 - 覆盖 Sharkey MFM cheatsheet 的全部 39 项，并额外提供斜体、删除线和 Ruby 注音，因此 picker 数据目前为 42 项。
 - 按文本与嵌入、布局、外观、动画和高级功能分类；按钮显示本地化样式名称。
+- 正常桌面宽度每行显示 3 个条目，窄屏自动收缩为 2/1 列；动画分类标题保留“动画”，条目名称不再重复此前缀。
 - 支持本地化名称、id/tag/语法搜索和设备端最近使用记录（最多 16 项）。
-- 支持 textarea selection wrapping；链接会在已选文字时选中 URL，Ruby 会在已选文字时选中注音；无选区时把光标放入待编辑位置。插入位置使用 JavaScript 字符串索引，即 textarea 所需的 UTF-16 偏移。
+- 纯样式包裹已有 textarea 选区后取消范围选中，把 caret 放到完整插入内容末尾；链接和 Ruby 仍分别选中 URL/注音以便继续填写。无选区时保留可编辑的 placeholder 或内部光标。插入位置使用 JavaScript 字符串索引，即 textarea 所需的 UTF-16 偏移。
 - 带参数的样式显示参数角标；桌面可右键，触屏可长按打开白名单参数预设。触屏移动超过阈值或 pointer cancel 会取消长按，长按触发后的 contextmenu 会去重。
 - 主要文件：
   - `packages/frontend/src/components/MkMfmPicker.vue`

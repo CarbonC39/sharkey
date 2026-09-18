@@ -316,7 +316,7 @@ defineExpose({ focus });
 
 .grid {
 	display: grid;
-	grid-template-columns: repeat(auto-fill, minmax(112px, 1fr));
+	grid-template-columns: repeat(3, minmax(0, 1fr));
 	gap: 4px;
 	padding: 6px 8px 8px;
 }
@@ -392,9 +392,15 @@ defineExpose({ focus });
 	text-align: center;
 }
 
-@container (max-width: 360px) {
+@container (max-width: 280px) {
 	.grid {
 		grid-template-columns: repeat(2, minmax(0, 1fr));
+	}
+}
+
+@container (max-width: 190px) {
+	.grid {
+		grid-template-columns: 1fr;
 	}
 }
 </style>

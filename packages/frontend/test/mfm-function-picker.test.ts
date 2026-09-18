@@ -36,18 +36,20 @@ describe('MFM function picker', () => {
 		assert.equal(searchMfmPickerItems('followmouse', item => item.id)[0]?.id, 'followMouse');
 	});
 
-	test('wraps a textarea selection and keeps it selected', () => {
+	test('wraps a textarea selection and collapses the caret after insertion', () => {
 		const item = findMfmPickerItem('bold')!;
 		const result = insertMfm('say hello!', 4, 9, item);
 		assert.equal(result.text, 'say **hello**!');
-		assert.equal(result.text.slice(result.selectionStart, result.selectionEnd), 'hello');
+		assert.equal(result.selectionStart, result.selectionEnd);
+		assert.equal(result.selectionStart, result.text.indexOf('!'));
 	});
 
 	test('preserves browser UTF-16 selection offsets for emoji and Chinese text', () => {
 		const item = findMfmPickerItem('bold')!;
 		const result = insertMfm('A😀中文B', 1, 5, item);
 		assert.equal(result.text, 'A**😀中文**B');
-		assert.equal(result.text.slice(result.selectionStart, result.selectionEnd), '😀中文');
+		assert.equal(result.selectionStart, result.selectionEnd);
+		assert.equal(result.selectionStart, result.text.indexOf('B'));
 	});
 
 	test('wraps selected link text and selects the URL for editing', () => {
@@ -107,7 +109,8 @@ describe('MFM function picker', () => {
 		const item = findMfmPickerItem('search')!;
 		const result = insertMfm('before query after', 7, 12, item);
 		assert.equal(result.text, 'before\nquery [search]\nafter');
-		assert.equal(result.text.slice(result.selectionStart, result.selectionEnd), 'query');
+		assert.equal(result.selectionStart, result.selectionEnd);
+		assert.equal(result.selectionStart, result.text.indexOf('after'));
 	});
 
 	test('uses the supplied time for Unix time insertion', () => {

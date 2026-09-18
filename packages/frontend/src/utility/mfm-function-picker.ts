@@ -137,6 +137,7 @@ export function insertMfm(
 	let inserted: string;
 	let relativeStart: number;
 	let relativeEnd: number;
+	let keepEditableSelection = false;
 
 	switch (item.template.type) {
 		case 'wrap': {
@@ -154,6 +155,7 @@ export function insertMfm(
 				relativeStart = 1;
 				relativeEnd = relativeStart + label.length;
 			} else {
+				keepEditableSelection = true;
 				relativeStart = label.length + 3;
 				relativeEnd = relativeStart + url.length;
 			}
@@ -211,6 +213,7 @@ export function insertMfm(
 				relativeStart = before.length;
 				relativeEnd = relativeStart + base.length;
 			} else {
+				keepEditableSelection = true;
 				relativeStart = before.length + base.length + 1;
 				relativeEnd = relativeStart + reading.length;
 			}
@@ -228,8 +231,10 @@ export function insertMfm(
 
 	return {
 		text: text.slice(0, replacementStart) + inserted + text.slice(replacementEnd),
-		selectionStart: replacementStart + relativeStart,
-		selectionEnd: replacementStart + relativeEnd,
+		// Wrapping an existing selection is complete after insertion; an empty insertion
+		// keeps the original editable placeholder/caret position.
+		selectionStart: start !== end && !keepEditableSelection ? replacementStart + inserted.length : replacementStart + relativeStart,
+		selectionEnd: start !== end && !keepEditableSelection ? replacementStart + inserted.length : replacementStart + relativeEnd,
 	};
 }
 
