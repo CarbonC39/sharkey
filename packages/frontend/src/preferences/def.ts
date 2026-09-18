@@ -178,7 +178,7 @@ export const PREF_DEF = {
 		default: false,
 	},
 	enableQuickAddMfmFunction: {
-		default: false,
+		default: true,
 	},
 	loadRawImages: {
 		default: false,
@@ -396,6 +396,9 @@ export const PREF_DEF = {
 	},
 	'deck.wallpaper': {
 		default: null as string | null,
+	},
+	'deck.useProfileBackground': {
+		default: false,
 	},
 
 	'chat.showSenderName': {

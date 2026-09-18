@@ -382,6 +382,20 @@ _moderationLogTypes:
   setRoot: "Set the root user"
 
 _mfm:
+  pickerMarkdown: "Common Markdown"
+  pickerBasic: "Text and embeds"
+  pickerLayout: "Layout"
+  pickerAnimation: "Animation"
+  pickerParameterHint: "Long-press or right-click for parameters"
+  parameterAlternate: "Alternate direction"
+  parameterRounded: "Rounded"
+  parameterDashed: "Dashed"
+  parameterThick: "Thick"
+  parameterNoClip: "Do not clip content"
+  parameterFadeOut: "Fade out"
+  italic: "Italic"
+  strikethrough: "Strikethrough"
+  ruby: "Ruby annotation"
   uncommonFeature: "This is not a widespread feature, it may not display properly on most other fedi software, including other Misskey forks"
   intro: "MFM is a markup language used on Misskey, Sharkey, Firefish, Akkoma, and more that can be used in many places. Here you can view a list of all available MFM syntax."
   dummy: "Sharkey expands the world of the Fediverse"
@@ -503,6 +517,10 @@ _announcement:
   confetti: "Throw confetti"
   confettiDescription: "If enabled, the announcement will display a confetti effect when viewed."
 _deck:
+  backgroundSource: "Deck background"
+  customWallpaper: "Custom wallpaper"
+  useProfileBackground: "Use profile background"
+  profileBackgroundNotSet: "Set a background in your profile before selecting this option."
   _columns:
     following: "Following"
 

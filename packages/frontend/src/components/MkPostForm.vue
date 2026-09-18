@@ -91,7 +91,7 @@ SPDX-License-Identifier: AGPL-3.0-only
 			<button v-tooltip="i18n.ts.hashtags" class="_button" :class="[$style.footerButton, { [$style.footerButtonActive]: withHashtags }]" @click="withHashtags = !withHashtags"><i class="ti ti-hash"></i></button>
 			<button v-if="postFormActions.length > 0" v-tooltip="i18n.ts.plugins" class="_button" :class="$style.footerButton" @click="showActions"><i class="ti ti-plug"></i></button>
 			<button v-tooltip="i18n.ts.emoji" :class="['_button', $style.footerButton]" @click="insertEmoji"><i class="ti ti-mood-happy"></i></button>
-			<button v-if="showAddMfmFunction" v-tooltip="i18n.ts.addMfmFunction" :class="['_button', $style.footerButton]" @click="insertMfmFunction"><i class="ti ti-palette"></i></button>
+			<button v-if="showAddMfmFunction" v-tooltip="i18n.ts.addMfmFunction" :class="['_button', $style.footerButton, { [$style.footerButtonActive]: mfmPickerOpen }]" @click="insertMfmFunction"><i class="ti ti-palette"></i></button>
 		</div>
 		<div :class="$style.footerRight">
 			<button v-tooltip="i18n.ts.previewNoteText" class="_button" :class="[$style.footerButton, { [$style.previewButtonActive]: showPreview }]" @click="showPreview = !showPreview"><i class="ti ti-eye"></i></button>
@@ -142,7 +142,7 @@ import MkScheduleEditor from '@/components/MkScheduleEditor.vue';
 import { miLocalStorage } from '@/local-storage.js';
 import { claimAchievement } from '@/utility/achievements.js';
 import { emojiPicker } from '@/utility/emoji-picker.js';
-import { mfmFunctionPicker } from '@/utility/mfm-function-picker.js';
+import { insertMfm } from '@/utility/mfm-function-picker.js';
 import { prefer } from '@/preferences.js';
 import { getPluginHandlers } from '@/plugin.js';
 import { DI } from '@/di.js';
@@ -191,6 +191,7 @@ const useCw = ref<boolean>(!!props.initialCw);
 const showPreview = ref(store.s.showPreview);
 watch(showPreview, () => store.set('showPreview', showPreview.value));
 const showAddMfmFunction = ref(prefer.s.enableQuickAddMfmFunction);
+const mfmPickerOpen = ref(false);
 watch(showAddMfmFunction, () => prefer.commit('enableQuickAddMfmFunction', showAddMfmFunction.value));
 const cw = ref<string | null>(props.initialCw ?? null);
 const localOnly = ref(props.initialLocalOnly ?? (prefer.s.rememberNoteVisibility ? store.s.localOnly : prefer.s.defaultNoteLocalOnly));
@@ -1133,10 +1134,34 @@ async function insertEmoji(ev: MouseEvent) {
 
 async function insertMfmFunction(ev: MouseEvent) {
 	if (textareaEl.value == null) return;
-	mfmFunctionPicker(
-		ev.currentTarget ?? ev.target,
-		textareaEl.value,
-		text,
+	const source = ev.currentTarget ?? ev.target;
+	if (!(source instanceof HTMLElement)) return;
+
+	textAreaReadOnly.value = true;
+	mfmPickerOpen.value = true;
+	let nextSelectionStart = textareaEl.value.selectionStart ?? text.value.length;
+	let nextSelectionEnd = textareaEl.value.selectionEnd ?? nextSelectionStart;
+
+	const { dispose } = os.popup(
+		defineAsyncComponent(() => import('@/components/MkMfmPickerDialog.vue')),
+		{ src: source },
+		{
+			done: ({ item, params }) => {
+				const result = insertMfm(text.value, nextSelectionStart, nextSelectionEnd, item, params);
+				text.value = result.text;
+				nextSelectionStart = result.selectionStart;
+				nextSelectionEnd = result.selectionEnd;
+			},
+			closed: () => {
+				dispose();
+				mfmPickerOpen.value = false;
+				textAreaReadOnly.value = false;
+				nextTick(() => {
+					textareaEl.value?.focus();
+					textareaEl.value?.setSelectionRange(nextSelectionStart, nextSelectionEnd);
+				});
+			},
+		},
 	);
 }
 

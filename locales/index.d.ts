@@ -10626,6 +10626,22 @@ export interface Locale extends ILocale {
              */
             "following": string;
         };
+        /**
+         * Deck background
+         */
+        "backgroundSource": string;
+        /**
+         * Custom wallpaper
+         */
+        "customWallpaper": string;
+        /**
+         * Use profile background
+         */
+        "useProfileBackground": string;
+        /**
+         * Set a background in your profile before selecting this option.
+         */
+        "profileBackgroundNotSet": string;
     };
     "_dialog": {
         /**
@@ -12620,6 +12636,62 @@ export interface Locale extends ILocale {
         "cspError": string;
     };
     "_mfm": {
+        /**
+         * Common Markdown
+         */
+        "pickerMarkdown": string;
+        /**
+         * Text and embeds
+         */
+        "pickerBasic": string;
+        /**
+         * Layout
+         */
+        "pickerLayout": string;
+        /**
+         * Animation
+         */
+        "pickerAnimation": string;
+        /**
+         * Long-press or right-click for parameters
+         */
+        "pickerParameterHint": string;
+        /**
+         * Alternate direction
+         */
+        "parameterAlternate": string;
+        /**
+         * Rounded
+         */
+        "parameterRounded": string;
+        /**
+         * Dashed
+         */
+        "parameterDashed": string;
+        /**
+         * Thick
+         */
+        "parameterThick": string;
+        /**
+         * Do not clip content
+         */
+        "parameterNoClip": string;
+        /**
+         * Fade out
+         */
+        "parameterFadeOut": string;
+        /**
+         * Italic
+         */
+        "italic": string;
+        /**
+         * Strikethrough
+         */
+        "strikethrough": string;
+        /**
+         * Ruby annotation
+         */
+        "ruby": string;
         /**
          * This is not a widespread feature, it may not display properly on most other fedi software, including other Misskey forks
          */

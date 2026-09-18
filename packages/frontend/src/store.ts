@@ -88,6 +88,10 @@ export const store = markRaw(new Pizzax('base', {
 		where: 'device',
 		default: [] as string[],
 	},
+	recentlyUsedMfm: {
+		where: 'device',
+		default: [] as string[],
+	},
 	recentlyUsedUsers: {
 		where: 'device',
 		default: [] as string[],

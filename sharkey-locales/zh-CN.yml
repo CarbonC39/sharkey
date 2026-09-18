@@ -380,6 +380,20 @@ _moderationLogTypes:
   setRoot: "设定了根 (root) 用户"
 
 _mfm:
+  pickerMarkdown: "常用 Markdown"
+  pickerBasic: "文本与嵌入"
+  pickerLayout: "布局"
+  pickerAnimation: "动画"
+  pickerParameterHint: "长按或右键可选择参数"
+  parameterAlternate: "往返旋转"
+  parameterRounded: "圆角"
+  parameterDashed: "虚线"
+  parameterThick: "粗边框"
+  parameterNoClip: "不裁剪内容"
+  parameterFadeOut: "淡出"
+  italic: "斜体"
+  strikethrough: "删除线"
+  ruby: "注音"
   uncommonFeature: "这不是一个广泛传播的功能，它可能无法在其它的联邦宇宙应用程序上正常显示（包括其它 Misskey 分支）"
   intro: "MFM 是一种在 Misskey，Sharkey，Firefish，Akkoma 和其它更多地方使用的标记语言。在此处，你可以查看可用的 MFM 语法的列表。"
   dummy: "Sharkey 扩展了联邦宇宙的世界"
@@ -501,6 +515,10 @@ _announcement:
   confetti: "丢出五彩纸屑"
   confettiDescription: "如果启用这个选项，查看该公告时，会展示一个五彩纸屑的效果。"
 _deck:
+  backgroundSource: "Deck 背景"
+  customWallpaper: "自定义壁纸"
+  useProfileBackground: "使用个人背景"
+  profileBackgroundNotSet: "请先在个人资料中设置背景图，再选择此选项。"
   _columns:
     following: "关注中"
 

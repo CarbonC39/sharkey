@@ -10,7 +10,7 @@ SPDX-License-Identifier: AGPL-3.0-only
 	<div :class="$style.nonTitlebarArea">
 		<XSidebar v-if="!isMobile && prefer.r['deck.navbarPosition'].value === 'left'"/>
 
-		<div :class="[$style.main, { [$style.withWallpaper]: withWallpaper, [$style.withSidebarAndTitlebar]: !isMobile && prefer.r['deck.navbarPosition'].value === 'left' && prefer.r.showTitlebar.value }]" :style="{ backgroundImage: prefer.s['deck.wallpaper'] != null ? `url(${ prefer.s['deck.wallpaper'] })` : null }">
+		<div :class="[$style.main, { [$style.withWallpaper]: withWallpaper, [$style.withSidebarAndTitlebar]: !isMobile && prefer.r['deck.navbarPosition'].value === 'left' && prefer.r.showTitlebar.value }]" :style="{ backgroundImage: wallpaper != null ? `url(${ wallpaper })` : undefined }">
 			<XNavbarH v-if="!isMobile && prefer.r['deck.navbarPosition'].value === 'top'"/>
 
 			<XAnnouncements v-if="$i"/>
@@ -85,7 +85,7 @@ SPDX-License-Identifier: AGPL-3.0-only
 </template>
 
 <script lang="ts" setup>
-import { defineAsyncComponent, ref, useTemplateRef } from 'vue';
+import { computed, defineAsyncComponent, ref, useTemplateRef } from 'vue';
 import { v4 as uuid } from 'uuid';
 import XCommon from './_common_/common.vue';
 import XSidebar from '@/ui/_common_/navbar.vue';
@@ -147,7 +147,8 @@ window.addEventListener('resize', () => {
 
 // ポインターイベント非対応用に初期値はUAから出す
 const snapScroll = ref(deviceKind === 'smartphone' || deviceKind === 'tablet');
-const withWallpaper = prefer.s['deck.wallpaper'] != null;
+const wallpaper = computed(() => prefer.r['deck.useProfileBackground'].value ? ($i?.backgroundUrl ?? null) : prefer.r['deck.wallpaper'].value);
+const withWallpaper = computed(() => wallpaper.value != null);
 const drawerMenuShowing = ref(false);
 const widgetsShowing = ref(false);
 const gap = prefer.r['deck.columnGap'];
@@ -251,6 +252,12 @@ window.document.documentElement.style.scrollBehavior = 'auto';
 
 	&:not(.withWallpaper) {
 		background: var(--MI_THEME-deckBg);
+	}
+
+	&.withWallpaper {
+		background-repeat: no-repeat;
+		background-position: center;
+		background-size: cover;
 	}
 
 	&.withSidebarAndTitlebar {

@@ -51,11 +51,12 @@ import * as os from '@/os.js';
 import { i18n } from '@/i18n.js';
 import { prefer } from '@/preferences.js';
 import { DI } from '@/di.js';
+import { $i } from '@/i.js';
 
 provide('shouldHeaderThin', true);
 provide('shouldOmitHeaderTitle', true);
 
-const withWallpaper = prefer.s['deck.wallpaper'] != null;
+const withWallpaper = computed(() => (prefer.r['deck.useProfileBackground'].value ? $i?.backgroundUrl : prefer.r['deck.wallpaper'].value) != null);
 
 const props = withDefaults(defineProps<{
 	column: Column;
@@ -375,6 +376,12 @@ function onDrop(ev) {
 	}
 
 	&.withWallpaper {
+		> .body {
+			background-color: color-mix(in srgb, var(--MI_THEME-bg) 86%, transparent);
+			-webkit-backdrop-filter: var(--MI-blur, blur(4px));
+			backdrop-filter: var(--MI-blur, blur(4px));
+		}
+
 		&.naked {
 			background: color(from var(--MI_THEME-bg) srgb r g b / 0.75) !important;
 			-webkit-backdrop-filter: var(--MI-blur, blur(10px));

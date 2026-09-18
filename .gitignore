@@ -51,6 +51,8 @@ built
 built-test
 js-built
 /data
+/.nix-test/
+/**/tsconfig.json.lock
 /.cache-loader
 /db
 /meili_data

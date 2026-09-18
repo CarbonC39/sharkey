@@ -27,7 +27,10 @@ SPDX-License-Identifier: AGPL-3.0-only
 	</div>
 	<div :class="$style.caption"><slot name="caption"></slot></div>
 	<button v-if="mfmPreview" style="font-size: 0.85em;" class="_textButton" type="button" @click="preview = !preview">{{ i18n.ts.preview }}</button>
-	<div v-if="mfmPreview" v-show="preview" v-panel :class="$style.mfmPreview">
+	<div v-if="mfmPreview && mfmPreviewPanel" v-show="preview" v-panel :class="$style.mfmPreview">
+		<Mfm :text="v" :isBlock="true" :isNote="mfmPreviewIsNote"/>
+	</div>
+	<div v-else-if="mfmPreview" v-show="preview" :class="[$style.mfmPreview, $style.mfmPreviewPlain]">
 		<Mfm :text="v" :isBlock="true" :isNote="mfmPreviewIsNote"/>
 	</div>
 
@@ -55,6 +58,7 @@ const props = withDefaults(defineProps<{
 	mfmAutocomplete?: boolean | SuggestionType[],
 	mfmPreview?: boolean;
 	mfmPreviewIsNote?: boolean;
+	mfmPreviewPanel?: boolean;
 	spellcheck?: boolean;
 	debounce?: boolean;
 	manualSave?: boolean;
@@ -64,6 +68,7 @@ const props = withDefaults(defineProps<{
 }>(), {
 	spellcheck: true,
 	mfmPreviewIsNote: true,
+	mfmPreviewPanel: true,
 });
 
 const emit = defineEmits<{
@@ -230,10 +235,15 @@ onUnmounted(() => {
 }
 
 .mfmPreview {
-  padding: 12px;
-  border-radius: var(--MI-radius);
-  box-sizing: border-box;
-  min-height: 130px;
+	padding: 12px;
+	border-radius: var(--MI-radius);
+	box-sizing: border-box;
+	min-height: 130px;
 	pointer-events: none;
+}
+
+.mfmPreviewPlain {
+	padding: 8px 0;
+	min-height: 0;
 }
 </style>
