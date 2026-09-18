@@ -36,8 +36,11 @@ git push origin 2025.5.2-lomia.1
 
 The release workflow accepts a matching pushed tag or an explicitly supplied
 tag in a manual run. A normal branch push or pull request never publishes to
-GHCR. The workflow intentionally publishes only the immutable version tag and
-the full-commit `sha-<commit>` tag; it does not move `latest` or `stable`.
+GHCR. The workflow first publishes the immutable architecture tags
+`<version>-amd64` and `<version>-arm64`, then creates the final version tag and
+full-commit `sha-<commit>` multi-architecture manifests. It does not move
+`latest` or `stable`; retain the architecture tags for provenance, but deploy
+only the final manifest by digest.
 
 ## Forgejo and GitHub mirror flow
 
