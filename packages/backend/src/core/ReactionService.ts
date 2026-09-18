@@ -188,8 +188,13 @@ export class ReactionService implements OnModuleInit {
 					const emoji = alreadyUsedOnNote
 						? await this.customEmojiService.emojisByKeyCache.fetchMaybe(emojiKey)
 						: null;
+					const canUseEmoji = emoji != null && (
+						emoji.roleIdsThatCanBeUsedThisEmojiAsReaction.length === 0
+						|| (await this.roleService.getUserRoles(user.id)).some(r => emoji.roleIdsThatCanBeUsedThisEmojiAsReaction.includes(r.id))
+					);
 
 					if (
+						canUseEmoji &&
 						emoji != null &&
 						this.utilityService.isFederationAllowedHost(remoteHost) &&
 						!this.utilityService.isMediaSilencedHost(this.meta.mediaSilencedHosts, remoteHost) &&

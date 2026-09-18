@@ -215,7 +215,7 @@ describe('Endpoints', () => {
 	});
 
 	describe('notes/reactions/create', () => {
-		async function seedRemoteReaction(noteId: string, userId: string, reaction: `:${string}@${string}:`, url: string) {
+		async function seedRemoteReaction(noteId: string, userId: string, reaction: `:${string}@${string}:`, url: string, roleIdsThatCanBeUsedThisEmojiAsReaction: string[] = []) {
 			const match = /^:([^:]+)@([^:]+):$/.exec(reaction);
 			assert.ok(match);
 
@@ -234,7 +234,7 @@ describe('Endpoints', () => {
 				license: null,
 				localOnly: false,
 				isSensitive: false,
-				roleIdsThatCanBeUsedThisEmojiAsReaction: [],
+				roleIdsThatCanBeUsedThisEmojiAsReaction,
 			});
 			await connection.getRepository(MiNoteReaction).insert({
 				id: genAidx(Date.now()),
@@ -321,6 +321,29 @@ describe('Endpoints', () => {
 			const res = await api('notes/reactions/create', {
 				noteId: bobPost.id,
 				reaction: ':same_name@second.example:',
+			}, alice);
+
+			assert.strictEqual(res.status, 204);
+			const reactions = await api('notes/reactions', { noteId: bobPost.id });
+			const aliceReaction = reactions.body.find((item: { user: { id: string } }) => item.user.id === alice.id);
+			assert.ok(aliceReaction);
+			assert.strictEqual(aliceReaction.type, '\u2764');
+		});
+
+		test('role制限付きremote絵文字は権限なしでは再利用できない', async () => {
+			const bobPost = await post(bob, { text: 'hi' });
+			const reaction = ':role_limited@remote.example:' as const;
+			await seedRemoteReaction(
+				bobPost.id,
+				bob.id,
+				reaction,
+				'https://cdn.remote.example/role_limited.png',
+				['role-required-for-remote-reaction'],
+			);
+
+			const res = await api('notes/reactions/create', {
+				noteId: bobPost.id,
+				reaction,
 			}, alice);
 
 			assert.strictEqual(res.status, 204);
