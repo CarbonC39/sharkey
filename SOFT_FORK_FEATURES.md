@@ -2,7 +2,7 @@
 
 本仓库是 [Sharkey](https://activitypub.software/TransFem-org/Sharkey) 的 soft fork，目标是在保持上游兼容、便于持续合并更新的前提下，加入中文使用者体验和实例自用功能。
 
-本文按代码状态记录功能。合并上游时，请同时检查各节的“主要实现位置”和维护注意事项；“当前工作区未提交”不代表已经可以发布。
+本文按代码状态记录功能。合并上游时，请同时检查各节的“主要实现位置”和维护注意事项。
 
 ## 已提交：`145cd18a1b`
 
@@ -59,9 +59,9 @@
   - `packages/frontend/src/pages/about.overview.vue`
   - `packages/frontend/src/pages/admin/settings.vue`
 
-## 当前工作区未提交
+## 已提交：`fc51e17849` 至 `69e4051878`
 
-以下两项已实现于当前工作区，但尚未形成提交；发布前应先完成审查并补充验证。
+以下两项及其后续修复已形成提交，可随 `2025.5.2-lomia.1` 发布。
 
 ### MFM 快捷输入 Picker
 
@@ -91,7 +91,7 @@
 - Deck 背景来源增加“使用个人背景”选项，默认关闭。
 - 开启后动态读取当前账户的 `backgroundUrl`，不会复制或覆盖已有自定义 Deck 壁纸；未设置个人背景时禁用选项并显示提示。
 - 选择自定义壁纸会自动关闭“使用个人背景”；旧用户的 `deck.wallpaper` 和默认行为保持不变。新增偏好缺失时由偏好 profile normalization 补默认值 `false`。
-- 修改背景来源或壁纸后沿用现有行为，提示统一 reload 后应用。
+- 修改背景来源或壁纸后立即生效，不需要 reload，也不会显示 reload 提示。
 - Deck 的个人背景应实际作为 Deck 根背景显示；“使用个人背景”与自定义壁纸选项之间保留清晰间距，避免两个设置控件粘连。
 - 主要实现：
   - `packages/frontend/src/pages/settings/deck.vue`

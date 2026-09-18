@@ -1,3 +1,19 @@
+## 2025.5.2-lomia.1
+
+### Note
+- 新增 Nix 开发与后端测试环境，提供隔离的 PostgreSQL/Redis 服务及可复现的 Node.js 22/pnpm 工具链。
+
+### Client
+- Enhance: 优化中文发帖输入框的行距与最小高度。
+- Enhance: Emoji picker 支持简体中文 Unicode Emoji 搜索词。
+- Feat: 新增 MFM 快捷输入 picker，覆盖 MFM cheatsheet 样式，提供分类、常用 Markdown 置顶、搜索、最近使用、选区包裹和参数预设。
+- Feat: Deck 背景支持使用个人背景，切换背景来源和壁纸后即时生效。
+
+### Server
+- Feat: 支持对帖文中已存在的远程自定义 emoji reaction 直接 +1，并保留联邦身份校验。
+- Enhance: 搜索页支持时间倒序和相关性排序。
+- Enhance: 实例简介支持 MFM 和换行，管理后台提供 MFM 补全与预览。
+
 ## 2025.5.0
 
 ### Note
