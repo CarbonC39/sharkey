@@ -47,14 +47,15 @@ note() {
 }
 
 acquire_dev_session_lock() {
+	local operation="${1:-development session}"
 	exec {DEV_LOCK_FD}>>"$DEV_LOCK_FILE"
 	if ! flock -n "$DEV_LOCK_FD"; then
 		local owner_pid=''
 		read -r owner_pid < "$DEV_LOCK_OWNER_FILE" 2>/dev/null || true
 		if [[ "$owner_pid" =~ ^[0-9]+$ ]] && kill -0 "$owner_pid" 2>/dev/null; then
-			die "development session already running (PID $owner_pid); URL: http://127.0.0.1:$TEST_PORT"
+			die "$operation cannot run while development session PID $owner_pid is active; URL: http://127.0.0.1:$TEST_PORT"
 		fi
-		die "development session lock is held by another process (recorded PID: ${owner_pid:-unknown}); refusing to start a second session"
+		die "$operation cannot run: development session lock is held by another process (recorded PID: ${owner_pid:-unknown})"
 	fi
 	local owner_tmp="$DEV_LOCK_OWNER_FILE.$$"
 	printf '%s\n' "$$" > "$owner_tmp"
@@ -311,18 +312,35 @@ migrate_backend() {
 }
 
 migrate_dev_backend() {
-	# Keep interactive development data separate from the disposable unit-test
-	# database. Recreating this database is intentional: it makes `dev` safe to
-	# rerun after an interrupted migration while leaving test data untouched.
+	# Keep interactive development data persistent. Re-run only pending
+	# migrations; if a migration fails, return the error without deleting data.
+	ensure_database "$DEV_DB"
+	run_with_dev_env pnpm --filter backend migrate
+}
+
+port_is_listening() {
+	timeout 1 bash -c ": </dev/tcp/127.0.0.1/$TEST_PORT" >/dev/null 2>&1
+}
+
+reset_dev_database() {
+	acquire_dev_session_lock "dev database reset"
+	if port_is_listening; then
+		release_dev_session_lock
+		die "dev database reset refused: port $TEST_PORT is already in use; stop the running dev session first"
+	fi
+
+	trap cleanup_dev_environment EXIT
+	init_dev_environment
+	start_postgres
 	dropdb -h 127.0.0.1 -p "$PG_PORT" -U postgres --if-exists --force "$DEV_DB" >/dev/null
 	createdb -h 127.0.0.1 -p "$PG_PORT" -U postgres "$DEV_DB"
-	run_with_dev_env pnpm --filter backend migrate
+	note "reset dev database: $DEV_DB"
 }
 
 usage() {
 	cat >&2 <<'EOF'
 Usage:
-  sharkey-nix-test <init|start|stop|status|env|prepare>
+  sharkey-nix-test <init|start|stop|reset-dev|status|env|prepare>
   sharkey-nix-test dev [pnpm dev arguments]
   sharkey-nix-test unit [Jest arguments]
   sharkey-nix-test e2e [Jest arguments]
@@ -330,13 +348,14 @@ Usage:
   init    initialize isolated data and write the generated test config
   start   initialize and start PostgreSQL and Redis
   stop    stop only services owned by this test environment
-  status  show service state and paths
-  env     print shell exports (use: eval "$(sharkey-nix-test env)")
-  prepare build backend prerequisites and output for unit/E2E tests
-  dev     run the local frontend/backend development server with isolated
-          PostgreSQL, Redis, config, and a migrated dev-misskey database
-  unit    start services, prepare backend, and run backend unit tests (args are passed to Jest)
-  e2e     start services, build prerequisites, and run backend E2E tests (args are passed to Jest)
+  reset-dev  reset persistent dev-misskey (refuses active dev sessions)
+  status     show service state and paths
+  env        print shell exports (use: eval "$(sharkey-nix-test env)")
+  prepare    build backend prerequisites and output for unit/E2E tests
+  dev        run the local frontend/backend development server with isolated
+             PostgreSQL, Redis, config, and a migrated dev-misskey database
+  unit       start services, prepare backend, and run backend unit tests (args are passed to Jest)
+  e2e        start services, build prerequisites, and run backend E2E tests (args are passed to Jest)
 EOF
 }
 
@@ -364,7 +383,7 @@ case "${1:-}" in
 		;;
 	dev)
 		shift
-		acquire_dev_session_lock
+		acquire_dev_session_lock "development session"
 		trap cleanup_dev_environment EXIT
 		start_environment
 		run_with_dev_env pnpm --filter backend build
@@ -372,6 +391,9 @@ case "${1:-}" in
 		note "starting development server; the first build can take a few minutes"
 		note "URL: http://127.0.0.1:$TEST_PORT (wait for the backend and Vite watchers to report ready before opening it)"
 		run_with_dev_env pnpm dev "$@"
+		;;
+	reset-dev)
+		reset_dev_database
 		;;
 	unit)
 		shift

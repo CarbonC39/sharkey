@@ -96,8 +96,8 @@ browser work, use the isolated helper instead:
 sharkey-nix-test dev
 ```
 
-It starts the helper-owned PostgreSQL and Redis, builds the backend, recreates
-and migrates the separate `dev-misskey` database, and runs the normal root
+It starts the helper-owned PostgreSQL and Redis, builds the backend, ensures the
+persistent `dev-misskey` database exists and migrates it, and runs the normal root
 development watchers with a generated config. Open only the backend-served
 app at `http://127.0.0.1:61812`; Vite's server is an internal HMR dependency,
 not the browser entry point. The generated development URL is
@@ -112,6 +112,9 @@ A second invocation exits immediately with the existing session PID and URL;
 it does not stop or reuse that session's PostgreSQL, Redis, or watchers. The
 session lock is released automatically when the owning helper exits.
 
+The dev database is persistent by default: local accounts, browser tokens,
+uploaded-file metadata, and other development data survive a helper restart.
+
 The notes search endpoint is intentionally disabled by the default role policy
 (`canSearchNotes: false`). To test search in this disposable instance, open
 the control panel, go to `Roles`, and enable `是否可以搜索帖子` under the base
@@ -120,10 +123,21 @@ the isolated development database; do not change Sharkey's production default
 policy just to make the test environment searchable.
 
 Press Ctrl-C to stop the development process; the helper then stops only its
-own PostgreSQL and Redis processes. The disposable development database is
-recreated on the next `sharkey-nix-test dev` invocation. Use `start`/`stop` and
-`env` separately when you want to manage services manually or run a command
-other than the local development watchers.
+own PostgreSQL and Redis processes. The development database is
+kept for the next `sharkey-nix-test dev` invocation, so browser tokens and
+local setup survive restarts. To intentionally clear it, stop the dev session
+and run:
+
+```bash
+sharkey-nix-test reset-dev
+```
+
+This is an explicit destructive operation targeting only `dev-misskey`; it
+refuses to run while the dev URL is active and leaves `test-misskey` untouched.
+After resetting, start `dev` again to run the pending migrations, then visit
+`http://127.0.0.1:61812/flush` in the browser to clear its old local token.
+Use `start`/`stop` and `env` separately when you want to manage services
+manually or run a command other than the local development watchers.
 
 The frontend build imports files from `fluent-emojis/dist` and
 `tossface-emojis/dist`; without the submodule step those directories are empty
