@@ -91,7 +91,7 @@ SPDX-License-Identifier: AGPL-3.0-only
 			<button v-tooltip="i18n.ts.hashtags" class="_button" :class="[$style.footerButton, { [$style.footerButtonActive]: withHashtags }]" @click="withHashtags = !withHashtags"><i class="ti ti-hash"></i></button>
 			<button v-if="postFormActions.length > 0" v-tooltip="i18n.ts.plugins" class="_button" :class="$style.footerButton" @click="showActions"><i class="ti ti-plug"></i></button>
 			<button v-tooltip="i18n.ts.emoji" :class="['_button', $style.footerButton]" @click="insertEmoji"><i class="ti ti-mood-happy"></i></button>
-			<button v-if="showAddMfmFunction" v-tooltip="i18n.ts.addMfmFunction" :class="['_button', $style.footerButton, { [$style.footerButtonActive]: mfmPickerOpen }]" @click="insertMfmFunction"><i class="ti ti-palette"></i></button>
+			<button v-if="showAddMfmFunction" v-tooltip="i18n.ts.addMfmFunction" :class="['_button', $style.footerButton]" @mousedown.prevent @click="insertMfmFunction"><i class="ti ti-palette"></i></button>
 		</div>
 		<div :class="$style.footerRight">
 			<button v-tooltip="i18n.ts.previewNoteText" class="_button" :class="[$style.footerButton, { [$style.previewButtonActive]: showPreview }]" @click="showPreview = !showPreview"><i class="ti ti-eye"></i></button>
@@ -191,7 +191,6 @@ const useCw = ref<boolean>(!!props.initialCw);
 const showPreview = ref(store.s.showPreview);
 watch(showPreview, () => store.set('showPreview', showPreview.value));
 const showAddMfmFunction = ref(prefer.s.enableQuickAddMfmFunction);
-const mfmPickerOpen = ref(false);
 watch(showAddMfmFunction, () => prefer.commit('enableQuickAddMfmFunction', showAddMfmFunction.value));
 const cw = ref<string | null>(props.initialCw ?? null);
 const localOnly = ref(props.initialLocalOnly ?? (prefer.s.rememberNoteVisibility ? store.s.localOnly : prefer.s.defaultNoteLocalOnly));
@@ -1138,13 +1137,12 @@ async function insertMfmFunction(ev: MouseEvent) {
 	if (!(source instanceof HTMLElement)) return;
 
 	textAreaReadOnly.value = true;
-	mfmPickerOpen.value = true;
 	let nextSelectionStart = textareaEl.value.selectionStart ?? text.value.length;
 	let nextSelectionEnd = textareaEl.value.selectionEnd ?? nextSelectionStart;
 
 	const { dispose } = os.popup(
 		defineAsyncComponent(() => import('@/components/MkMfmPickerDialog.vue')),
-		{ src: source },
+		{ src: source, preserveSourceFocus: nextSelectionStart !== nextSelectionEnd },
 		{
 			done: ({ item, params }) => {
 				const result = insertMfm(text.value, nextSelectionStart, nextSelectionEnd, item, params);
@@ -1154,7 +1152,6 @@ async function insertMfmFunction(ev: MouseEvent) {
 			},
 			closed: () => {
 				dispose();
-				mfmPickerOpen.value = false;
 				textAreaReadOnly.value = false;
 				nextTick(() => {
 					textareaEl.value?.focus();

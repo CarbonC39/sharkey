@@ -10,6 +10,7 @@ SPDX-License-Identifier: AGPL-3.0-only
 	:zPriority="'middle'"
 	:preferType="prefer.s.emojiPickerStyle"
 	:hasInteractionWithOtherFocusTrappedEls="true"
+	:focusOnOpen="!props.preserveSourceFocus"
 	:transparentBg="true"
 	:src="src"
 	@click="modal?.close()"
@@ -22,6 +23,7 @@ SPDX-License-Identifier: AGPL-3.0-only
 		class="_popup _shadow"
 		:asDrawer="type === 'drawer'"
 		:maxHeight="maxHeight"
+		:autoFocus="!props.preserveSourceFocus"
 		@chosen="chosen"
 		@esc="modal?.close()"
 	/>
@@ -35,8 +37,9 @@ import MkModal from '@/components/MkModal.vue';
 import MkMfmPicker from '@/components/MkMfmPicker.vue';
 import { prefer } from '@/preferences.js';
 
-defineProps<{
+const props = defineProps<{
 	src?: HTMLElement;
+	preserveSourceFocus?: boolean;
 }>();
 
 const emit = defineEmits<{
@@ -53,6 +56,7 @@ function chosen(value: { item: MfmPickerItem; params: string[] }) {
 }
 
 function opening() {
+	if (props.preserveSourceFocus) return;
 	picker.value?.focus();
 	window.setTimeout(() => picker.value?.focus(), 10);
 }

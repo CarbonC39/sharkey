@@ -73,6 +73,7 @@ const props = withDefaults(defineProps<{
 	noOverlap?: boolean;
 	transparentBg?: boolean;
 	hasInteractionWithOtherFocusTrappedEls?: boolean;
+	focusOnOpen?: boolean;
 	returnFocusTo?: HTMLElement | null;
 }>(), {
 	manualShowing: null,
@@ -83,6 +84,7 @@ const props = withDefaults(defineProps<{
 	noOverlap: true,
 	transparentBg: false,
 	hasInteractionWithOtherFocusTrappedEls: false,
+	focusOnOpen: true,
 	returnFocusTo: null,
 });
 
@@ -335,7 +337,7 @@ onMounted(() => {
 				const { release } = focusTrap(modalRootEl.value, props.hasInteractionWithOtherFocusTrappedEls);
 
 				releaseFocusTrap = release;
-				modalRootEl.value.focus();
+				if (props.focusOnOpen) modalRootEl.value.focus();
 			}
 		} else {
 			releaseFocusTrap?.();

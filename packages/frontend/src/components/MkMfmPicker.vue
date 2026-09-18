@@ -62,12 +62,14 @@ import * as os from '@/os.js';
 import { deviceKind } from '@/utility/device-kind.js';
 import { isTouchUsing } from '@/utility/touch.js';
 
-withDefaults(defineProps<{
+const props = withDefaults(defineProps<{
 	maxHeight?: number;
 	asDrawer?: boolean;
+	autoFocus?: boolean;
 }>(), {
 	maxHeight: undefined,
 	asDrawer: false,
+	autoFocus: true,
 });
 
 const emit = defineEmits<{
@@ -249,7 +251,9 @@ const MfmPickerItemButton = defineComponent({
 	},
 });
 
-onMounted(focus);
+onMounted(() => {
+	if (props.autoFocus) focus();
+});
 onBeforeUnmount(clearLongPress);
 
 defineExpose({ focus });

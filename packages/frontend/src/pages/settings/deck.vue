@@ -84,7 +84,7 @@ SPDX-License-Identifier: AGPL-3.0-only
 						<template #label><SearchLabel>{{ i18n.ts._deck.backgroundSource }}</SearchLabel></template>
 						<option :value="false">{{ wallpaper == null ? i18n.ts.none : i18n.ts._deck.customWallpaper }}</option>
 						<option :value="true" :disabled="$i?.backgroundUrl == null">{{ i18n.ts._deck.useProfileBackground }}</option>
-						<template v-if="$i?.backgroundUrl == null" #caption>{{ i18n.ts._deck.profileBackgroundNotSet }}</template>
+						<template v-if="useProfileBackground && $i?.backgroundUrl == null" #caption>{{ i18n.ts._deck.profileBackgroundNotSet }}</template>
 					</MkRadios>
 				</MkPreferenceContainer>
 
@@ -99,7 +99,7 @@ SPDX-License-Identifier: AGPL-3.0-only
 </template>
 
 <script lang="ts" setup>
-import { computed, ref, watch } from 'vue';
+import { computed, ref } from 'vue';
 import MkSwitch from '@/components/MkSwitch.vue';
 import MkRadios from '@/components/MkRadios.vue';
 import MkRange from '@/components/MkRange.vue';
@@ -108,7 +108,6 @@ import { i18n } from '@/i18n.js';
 import { definePage } from '@/page.js';
 import { prefer } from '@/preferences.js';
 import MkPreferenceContainer from '@/components/MkPreferenceContainer.vue';
-import { reloadAsk } from '@/utility/reload-ask.js';
 import { selectFile } from '@/utility/select-file.js';
 import { $i } from '@/i.js';
 
@@ -121,10 +120,6 @@ const menuPosition = prefer.model('deck.menuPosition');
 const navbarPosition = prefer.model('deck.navbarPosition');
 const wallpaper = prefer.model('deck.wallpaper');
 const useProfileBackground = prefer.model('deck.useProfileBackground');
-
-watch([wallpaper, useProfileBackground], async () => {
-	await reloadAsk({ reason: i18n.ts.reloadToApplySetting, unison: true });
-});
 
 function setWallpaper(ev: MouseEvent) {
 	selectFile(ev.currentTarget ?? ev.target, null).then(file => {
