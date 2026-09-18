@@ -107,6 +107,11 @@ watchers; the first build may take a few minutes, so wait for the backend and
 Vite watcher startup messages before opening the page. Extra arguments are
 forwarded to `pnpm dev`.
 
+Only one `sharkey-nix-test dev` session may use a state directory at a time.
+A second invocation exits immediately with the existing session PID and URL;
+it does not stop or reuse that session's PostgreSQL, Redis, or watchers. The
+session lock is released automatically when the owning helper exits.
+
 The notes search endpoint is intentionally disabled by the default role policy
 (`canSearchNotes: false`). To test search in this disposable instance, open
 the control panel, go to `Roles`, and enable `是否可以搜索帖子` under the base

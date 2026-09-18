@@ -32,6 +32,10 @@ REDIS_LOG="$STATE_DIR/redis.log"
 CONFIG_DIR="$STATE_DIR/config"
 CONFIG_FILE="$CONFIG_DIR/test.yml"
 MEDIA_DIR="$STATE_DIR/files"
+DEV_LOCK_FILE="$STATE_DIR/dev-session.lock"
+DEV_LOCK_OWNER_FILE="$STATE_DIR/dev-session.lock.owner"
+DEV_LOCK_FD=""
+DEV_LOCK_OWNED=0
 
 die() {
 	echo "nix test environment: $*" >&2
@@ -40,6 +44,31 @@ die() {
 
 note() {
 	echo "nix test environment: $*" >&2
+}
+
+acquire_dev_session_lock() {
+	exec {DEV_LOCK_FD}>>"$DEV_LOCK_FILE"
+	if ! flock -n "$DEV_LOCK_FD"; then
+		local owner_pid=''
+		read -r owner_pid < "$DEV_LOCK_OWNER_FILE" 2>/dev/null || true
+		if [[ "$owner_pid" =~ ^[0-9]+$ ]] && kill -0 "$owner_pid" 2>/dev/null; then
+			die "development session already running (PID $owner_pid); URL: http://127.0.0.1:$TEST_PORT"
+		fi
+		die "development session lock is held by another process (recorded PID: ${owner_pid:-unknown}); refusing to start a second session"
+	fi
+	local owner_tmp="$DEV_LOCK_OWNER_FILE.$$"
+	printf '%s\n' "$$" > "$owner_tmp"
+	mv -f "$owner_tmp" "$DEV_LOCK_OWNER_FILE"
+	DEV_LOCK_OWNED=1
+}
+
+release_dev_session_lock() {
+	if (( DEV_LOCK_OWNED == 1 )); then
+		rm -f "$DEV_LOCK_OWNER_FILE"
+		flock -u "$DEV_LOCK_FD" || true
+		eval "exec ${DEV_LOCK_FD}>&-"
+		DEV_LOCK_OWNED=0
+	fi
 }
 
 case "$STATE_DIR" in
@@ -233,6 +262,13 @@ stop_dev_environment() {
 	return "$exit_status"
 }
 
+cleanup_dev_environment() {
+	local exit_status=$?
+	stop_dev_environment || true
+	release_dev_session_lock
+	return "$exit_status"
+}
+
 status_environment() {
 	local postgres_status=stopped
 	local redis_status=stopped
@@ -328,7 +364,8 @@ case "${1:-}" in
 		;;
 	dev)
 		shift
-		trap stop_dev_environment EXIT
+		acquire_dev_session_lock
+		trap cleanup_dev_environment EXIT
 		start_environment
 		run_with_dev_env pnpm --filter backend build
 		migrate_dev_backend

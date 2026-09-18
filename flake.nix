@@ -46,6 +46,7 @@
               pkgs.python3
               pkgs.postgresql_17
               pkgs.redis
+              pkgs.util-linux
               pkgs.libuuid
               pkgs.re2
               pkgs.openssl

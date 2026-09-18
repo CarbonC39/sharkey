@@ -18,9 +18,11 @@ const tsConfig = nodePath.resolve(rootDir, 'tsconfig.json');
 const tsConfigBak = nodePath.resolve(rootDir, 'tsconfig.json.bak');
 const tsConfigVue = nodePath.resolve(rootDir, 'tsconfig.vue.json');
 const tsConfigLock = nodePath.resolve(rootDir, 'tsconfig.json.lock');
+const failIfConfigIsBusy = command === 'vite' && args[0] === 'build';
 
 let clean = true;
 let lockFd: number | undefined;
+let lastLockNoticeAt = 0;
 
 const sleep = (ms: number): Promise<void> => new Promise(resolve => setTimeout(resolve, ms));
 
@@ -66,6 +68,15 @@ async function acquireConfigLock(): Promise<void> {
 					// Another waiter may have removed the stale lock.
 				}
 				continue;
+			}
+
+			const now = Date.now();
+			if (failIfConfigIsBusy) {
+				throw new Error(`tsconfig.json is locked by ${ownerPid == null ? 'another process' : `PID ${ownerPid}`}; a dev/watch process is already running, stop it before running a build`);
+			}
+			if (now - lastLockNoticeAt >= 5_000) {
+				console.warn(`Waiting for tsconfig.json lock held by ${ownerPid == null ? 'another process' : `PID ${ownerPid}`}...`);
+				lastLockNoticeAt = now;
 			}
 
 			await sleep(50);
