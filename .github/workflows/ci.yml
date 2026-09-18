@@ -1,0 +1,106 @@
+name: CI
+
+on:
+  push:
+    branches:
+      - develop
+      - stable
+  pull_request:
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+env:
+  COREPACK_ENABLE_DOWNLOAD_PROMPT: '0'
+
+jobs:
+  quality:
+    name: Build, lint, and frontend tests
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    steps:
+      - name: Check out source
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+          submodules: recursive
+      - name: Set up Node.js
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: 22
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y git wget curl build-essential python3 ffmpeg libcairo2-dev libpango1.0-dev libpangocairo-1.0
+          corepack enable
+          corepack install
+          pnpm --version
+          pnpm install --frozen-lockfile
+      - name: Build, lint, and test frontend
+        run: |
+          pnpm run build
+          pnpm run eslint
+          pnpm --filter frontend test
+
+  backend-remote-e2e:
+    name: Backend remote-reaction E2E
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    services:
+      postgres:
+        image: postgres:15
+        env:
+          POSTGRES_PASSWORD: ci
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+      redis:
+        image: redis:7-alpine
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    steps:
+      - name: Check out source
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+          submodules: recursive
+      - name: Set up Node.js
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: 22
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y git wget curl build-essential python3 ffmpeg libcairo2-dev libpango1.0-dev libpangocairo-1.0
+          corepack enable
+          corepack install
+          pnpm install --frozen-lockfile
+      - name: Configure isolated test instance
+        run: |
+          sed -e 's/host: postgres/host: 127.0.0.1/' \
+              -e 's/host: redis/host: 127.0.0.1/' \
+              .config/ci.yml > .config/github-ci.yml
+          echo "clusterLimit: $(nproc)" >> .config/github-ci.yml
+          cp .config/github-ci.yml .config/default.yml
+          cp .config/github-ci.yml .config/test.yml
+      - name: Run remote-reaction E2E selection
+        run: |
+          pnpm --filter backend build:pre
+          pnpm --filter backend build
+          pnpm --filter backend build:test
+          pnpm --filter backend jest:e2e test/e2e/endpoints.ts --testNamePattern='remote'

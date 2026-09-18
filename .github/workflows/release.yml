@@ -1,0 +1,88 @@
+name: Release image
+
+on:
+  push:
+    tags:
+      - '*-lomia.*'
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Release version matching the two package.json files'
+        required: true
+        type: string
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+  packages: write
+
+env:
+  COREPACK_ENABLE_DOWNLOAD_PROMPT: '0'
+
+jobs:
+  publish:
+    name: Publish multi-architecture GHCR image
+    runs-on: ubuntu-24.04
+    timeout-minutes: 120
+    steps:
+      - name: Check out source
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          ref: ${{ github.event_name == 'workflow_dispatch' && inputs.tag || github.ref }}
+          fetch-depth: 0
+          persist-credentials: false
+          submodules: recursive
+      - name: Set up Node.js
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: 22
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@c7c53464625b32c7a7e944ae62b3e17d2b600130 # v3.7.0
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@8d2750c68a42422c14e847fe6c8ac0403b4cbd6f # v3.12.0
+      - name: Validate release version
+        id: release
+        env:
+          INPUT_TAG: ${{ inputs.tag }}
+        run: |
+          set -euo pipefail
+          if [ "${GITHUB_EVENT_NAME}" = push ]; then
+            test "${GITHUB_REF_TYPE}" = tag
+            tag="${GITHUB_REF_NAME}"
+          else
+            tag="${INPUT_TAG}"
+          fi
+          expected_commit="$(git rev-list -n 1 "refs/tags/$tag")"
+          actual_commit="$(git rev-parse HEAD)"
+          test -n "$expected_commit"
+          test "$expected_commit" = "$actual_commit"
+          node scripts/check-release-version.mjs "$tag"
+          echo "version=$tag" >> "$GITHUB_OUTPUT"
+          echo "commit=$actual_commit" >> "$GITHUB_OUTPUT"
+      - name: Log in to GHCR
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          printf '%s' "$GH_TOKEN" | docker login ghcr.io --username "$GITHUB_ACTOR" --password-stdin
+      - name: Build and push immutable multi-architecture image
+        env:
+          VERSION: ${{ steps.release.outputs.version }}
+          COMMIT: ${{ steps.release.outputs.commit }}
+        run: |
+          set -euo pipefail
+          image="ghcr.io/${GITHUB_REPOSITORY,,}"
+          docker buildx version
+          docker buildx build \
+            --platform linux/amd64,linux/arm64 \
+            --tag "$image:$VERSION" \
+            --tag "$image:sha-$COMMIT" \
+            --label "org.opencontainers.image.version=$VERSION" \
+            --label "org.opencontainers.image.revision=$COMMIT" \
+            --provenance=true \
+            --sbom=true \
+            --push \
+            .
