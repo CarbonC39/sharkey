@@ -12833,7 +12833,7 @@ export interface Locale extends ILocale {
          */
         "flipDescription": string;
         /**
-         * Animation (Jelly)
+         * Jelly
          */
         "jelly": string;
         /**
@@ -12841,7 +12841,7 @@ export interface Locale extends ILocale {
          */
         "jellyDescription": string;
         /**
-         * Animation (Tada)
+         * Tada
          */
         "tada": string;
         /**
@@ -12849,7 +12849,7 @@ export interface Locale extends ILocale {
          */
         "tadaDescription": string;
         /**
-         * Animation (Jump)
+         * Jump
          */
         "jump": string;
         /**
@@ -12857,7 +12857,7 @@ export interface Locale extends ILocale {
          */
         "jumpDescription": string;
         /**
-         * Animation (Bounce)
+         * Bounce
          */
         "bounce": string;
         /**
@@ -12865,7 +12865,7 @@ export interface Locale extends ILocale {
          */
         "bounceDescription": string;
         /**
-         * Animation (Shake)
+         * Shake
          */
         "shake": string;
         /**
@@ -12873,7 +12873,7 @@ export interface Locale extends ILocale {
          */
         "shakeDescription": string;
         /**
-         * Animation (Twitch)
+         * Twitch
          */
         "twitch": string;
         /**
@@ -12881,7 +12881,7 @@ export interface Locale extends ILocale {
          */
         "twitchDescription": string;
         /**
-         * Animation (Spin)
+         * Spin
          */
         "spin": string;
         /**
