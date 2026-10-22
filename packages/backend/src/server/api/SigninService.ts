@@ -41,6 +41,8 @@ export class SigninService {
 		setImmediate(async () => {
 			this.notificationService.createNotification(user.id, 'login', {});
 
+			delete request.headers.authorization;
+
 			const record = await this.signinsRepository.insertOne({
 				id: this.idService.gen(),
 				userId: user.id,
