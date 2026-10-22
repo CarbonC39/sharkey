@@ -11,8 +11,8 @@
 
 ### 远程自定义 Emoji Reaction
 
-- 本站用户可对帖子已有的远程 emoji reaction +1，无需注册本站 emoji；API 不接受客户端 emoji URL。
-- 必须匹配帖子已有的 `(name, host)` reaction 和缓存 emoji，并继续检查帖子可见性、reaction acceptance、敏感标记、角色权限、联邦 host 和 media-silenced host；不满足时回退为心形。
+- 本站用户可对帖子已有的远程 emoji reaction +1，也可使用该远程作者在帖文中使用的自定义 emoji 回应；无需注册本站 emoji，API 不接受客户端 emoji URL。
+- 必须匹配帖子已有的 `(name, host)` reaction，或匹配帖文作者主机及帖文的 emoji 列表，并命中缓存 emoji；继续检查帖子可见性、reaction acceptance、敏感标记、角色权限、联邦 host 和 media-silenced host；不满足时回退为心形。
 - 明确带 host 的 ActivityPub reaction 不从请求 tag 学习第三方 emoji；输出会校验 emoji URI authority。无 host 的标准联邦 emoji 仍按上游兼容路径学习，其 URL 视为不可信远程媒体。
 
 ### 搜索与实例简介
@@ -24,11 +24,17 @@
 
 - 发帖框提供分类的 MFM 快捷输入，常用 Markdown 置顶；覆盖 cheatsheet 39 项并保留额外的斜体、删除线和 Ruby 项。
 - 支持搜索、最近使用、选区包裹、链接/Ruby 后续填写，以及带白名单预设的参数菜单；块级语法和 parser/renderer 参数必须保持有效。
+- 旧设备偏好只迁移用户明确保存的开关值，避免旧默认值关闭新版默认开启的快捷键盘。
 
 ### Deck 个人背景
 
 - Deck 增加“使用个人背景”选项，默认关闭；响应式使用当前账户背景，自定义壁纸与个人背景互斥，切换即时生效。
 - 未登录、账户切换或无背景 URL 时安全降级；缺失旧偏好使用关闭状态，不改变旧用户行为。
+
+### 普通界面壁纸
+
+- 主题设置可选择主题背景、当前账户的个人资料背景或自定义壁纸；自定义图片可上传、从网盘选择或从 URL 导入。
+- 壁纸在普通界面即时生效，保留主题色半透明衬底以维持文字可读性；未设置图片时使用主题背景。
 
 ### 隔离测试环境
 
@@ -42,10 +48,10 @@
 
 - 输入与搜索：`packages/frontend/src/components/MkPostForm.vue`、`packages/frontend/src/components/MkTextarea.vue`、`packages/frontend/src/components/MkEmojiPicker.vue`、`packages/frontend/src/utility/search-unicode-emoji.ts`、`packages/backend/src/core/SearchService.ts`、`packages/frontend/src/pages/search.note.vue`。
 - Remote reaction/联邦：`packages/backend/src/core/ReactionService.ts`、`packages/backend/src/core/activitypub/ApInboxService.ts`、`packages/backend/src/core/activitypub/ApRendererService.ts`、`packages/frontend/src/components/MkReactionsViewer.reaction.vue`。
-- MFM/Deck：`packages/frontend/src/utility/mfm-function-picker.ts`、`packages/frontend/src/components/MkMfmPicker.vue`、`packages/frontend/test/mfm-function-picker.test.ts`、`packages/frontend/src/pages/settings/deck.vue`、`packages/frontend/src/ui/deck.vue`、`packages/frontend/src/preferences/def.ts`。
+- MFM/背景：`packages/frontend/src/utility/mfm-function-picker.ts`、`packages/frontend/src/components/MkMfmPicker.vue`、`packages/frontend/src/pref-migrate.ts`、`packages/frontend/src/pages/settings/deck.vue`、`packages/frontend/src/pages/settings/theme.vue`、`packages/frontend/src/ui/deck.vue`、`packages/frontend/src/ui/universal.vue`、`packages/frontend/src/preferences/def.ts`。
 
 ## 上游合并清单
 
 - 运行受影响的 unit/E2E、eslint 和 `git diff --check`；reaction、ActivityPub 或数据库变化需使用隔离 PostgreSQL/Redis 验证。
-- 合并时复核 MFM cheatsheet/locale/parser 参数、ReactionService 的角色/host/cache 边界、ActivityPub emoji URI 校验、Deck 响应式背景和偏好默认值。
+- 合并时复核 MFM cheatsheet/locale/parser 参数、ReactionService 的角色/host/cache 边界、ActivityPub emoji URI 校验、Deck 与普通界面响应式背景和偏好默认值。
 - 远程 emoji URL 必须继续遵守实例的 HTTPS、私网地址和大小限制；不得把客户端 URL 重新引入 reaction API。
