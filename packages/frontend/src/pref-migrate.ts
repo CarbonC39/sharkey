@@ -14,6 +14,7 @@ import { unisonReload } from '@/utility/unison-reload.js';
 import * as os from '@/os.js';
 import { i18n } from '@/i18n.js';
 import { miLocalStorage } from '@/local-storage';
+import { get } from '@/utility/idb-proxy.js';
 
 // TODO: そのうち消す
 export function migrateOldSettings() {
@@ -87,7 +88,13 @@ export function migrateOldSettings() {
 		prefer.commit('animatedMfm', store.s.animatedMfm);
 		prefer.commit('advancedMfm', store.s.advancedMfm);
 		prefer.commit('showReactionsCount', store.s.showReactionsCount);
-		prefer.commit('enableQuickAddMfmFunction', store.s.enableQuickAddMfmFunction);
+		// The old device store default was false, while the preference default is true.
+		// Only migrate an explicitly saved legacy value; otherwise migration would
+		// silently disable the MFM picker for users who never changed that setting.
+		const legacyDeviceState = await get(store.deviceStateKeyName);
+		if (legacyDeviceState != null && Object.hasOwn(legacyDeviceState, 'enableQuickAddMfmFunction')) {
+			prefer.commit('enableQuickAddMfmFunction', legacyDeviceState.enableQuickAddMfmFunction);
+		}
 		prefer.commit('loadRawImages', store.s.loadRawImages);
 		prefer.commit('imageNewTab', store.s.imageNewTab);
 		prefer.commit('disableShowingAnimatedImages', store.s.disableShowingAnimatedImages);
