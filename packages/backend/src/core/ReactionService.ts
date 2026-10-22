@@ -172,11 +172,9 @@ export class ReactionService implements OnModuleInit {
 				const remoteCustom = reaction.match(decodeCustomEmojiRegexp);
 				const remoteHost = remoteCustom?.[2] === '.' ? null : this.utilityService.toPunyNullable(remoteCustom?.[2]);
 
-				// A remote custom emoji may only be reused from an existing reaction on
-				// this note. In particular, the API never accepts an emoji URL from the
-				// client: the canonical (name, host) record must already have been learned
-				// through federation. This also keeps same-named emoji from different
-				// hosts in separate namespaces.
+				// Only reuse a remote emoji already attached to this note by its author,
+				// or one already used as a reaction here. The API never accepts an emoji
+				// URL from the client; the canonical (name, host) must already be known.
 				if (remoteCustom?.[1] != null && remoteHost != null && !this.utilityService.isSelfHost(remoteHost)) {
 					const name = remoteCustom[1];
 					const canonicalReaction = `:${name}@${remoteHost}:`;
@@ -184,8 +182,11 @@ export class ReactionService implements OnModuleInit {
 						noteId: note.id,
 						reaction: canonicalReaction,
 					});
+					const usedInNote = note.userHost != null &&
+						this.utilityService.toPuny(note.userHost) === remoteHost &&
+						note.emojis.includes(name);
 					const emojiKey = encodeEmojiKey({ name, host: remoteHost });
-					const emoji = alreadyUsedOnNote
+					const emoji = (alreadyUsedOnNote || usedInNote)
 						? await this.customEmojiService.emojisByKeyCache.fetchMaybe(emojiKey)
 						: null;
 					const canUseEmoji = emoji != null && (

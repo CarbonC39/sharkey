@@ -70,6 +70,7 @@ Displays a note in the Sharkey style. Used to show the "main" note in a given co
 						:text="appearNote.cw"
 						:author="appearNote.user"
 						:nyaize="'respect'"
+						:emojiUrls="appearNote.emojis"
 						:enableEmojiMenu="true"
 						:enableEmojiMenuReaction="true"
 						:isBlock="true"

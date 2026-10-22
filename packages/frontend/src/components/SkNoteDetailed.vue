@@ -90,6 +90,7 @@ Detailed view of a note in the Sharkey style. Used when opening a note onto its 
 					:text="appearNote.cw"
 					:author="appearNote.user"
 					:nyaize="'respect'"
+					:emojiUrls="appearNote.emojis"
 					:enableEmojiMenu="true"
 					:enableEmojiMenuReaction="true"
 					:isBlock="true"

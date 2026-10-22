@@ -65,6 +65,7 @@ SPDX-License-Identifier: AGPL-3.0-only
 						:text="appearNote.cw"
 						:author="appearNote.user"
 						:nyaize="'respect'"
+						:emojiUrls="appearNote.emojis"
 						:enableEmojiMenu="true"
 						:enableEmojiMenuReaction="true"
 						:isBlock="true"

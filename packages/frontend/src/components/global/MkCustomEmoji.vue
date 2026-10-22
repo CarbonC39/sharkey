@@ -24,6 +24,7 @@ SPDX-License-Identifier: AGPL-3.0-only
 	@error="errored = true"
 	@load="errored = false"
 	@click="onClick"
+	@contextmenu="onContextmenu"
 />
 </template>
 
@@ -88,33 +89,45 @@ const url = computed(() => {
 const alt = computed(() => `:${customEmojiName.value}:`);
 const errored = ref(url.value == null);
 
+function onContextmenu(ev: MouseEvent) {
+	if (!props.menu) return;
+	ev.preventDefault();
+	showMenu(ev);
+}
+
 function onClick(ev: MouseEvent) {
 	if (props.menu) {
-		ev.stopPropagation();
+		showMenu(ev);
+	}
+}
 
-		const menuItems: MenuItem[] = [];
+function showMenu(ev: MouseEvent) {
+	ev.stopPropagation();
+	const reaction = props.host ? `:${customEmojiName.value}@${props.host}:` : `:${customEmojiName.value}:`;
+	const menuItems: MenuItem[] = [];
 
+	menuItems.push({
+		type: 'label',
+		text: reaction,
+	}, {
+		text: i18n.ts.copy,
+		icon: 'ti ti-copy',
+		action: () => {
+			copyToClipboard(reaction);
+		},
+	});
+
+	if (props.menuReaction && react) {
 		menuItems.push({
-			type: 'label',
-			text: `:${props.name}:`,
-		}, {
-			text: i18n.ts.copy,
-			icon: 'ti ti-copy',
+			text: i18n.ts.doReaction,
+			icon: 'ph-smiley ph-bold ph-lg',
 			action: () => {
-				copyToClipboard(`:${props.name}:`);
+				react(reaction);
 			},
 		});
+	}
 
-		if (props.menuReaction && react) {
-			menuItems.push({
-				text: i18n.ts.doReaction,
-				icon: 'ph-smiley ph-bold ph-lg',
-				action: () => {
-					react(`:${props.name}:`);
-				},
-			});
-		}
-
+	if (!props.host) {
 		menuItems.push({
 			text: i18n.ts.info,
 			icon: 'ti ti-info-circle',
@@ -138,9 +151,9 @@ function onClick(ev: MouseEvent) {
 				},
 			});
 		}
-
-		os.popupMenu(menuItems, ev.currentTarget ?? ev.target);
 	}
+
+	os.popupMenu(menuItems, ev.currentTarget ?? ev.target);
 }
 
 async function edit(name: string) {
