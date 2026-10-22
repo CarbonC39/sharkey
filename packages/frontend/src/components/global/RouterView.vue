@@ -66,6 +66,6 @@ router.useListener('change', ({ resolved }) => {
 <style lang="scss" module>
 .root {
 	height: 100%;
-	background-color: var(--MI_THEME-bg);
+	background-color: var(--MI-universal-page-bg, var(--MI_THEME-bg));
 }
 </style>

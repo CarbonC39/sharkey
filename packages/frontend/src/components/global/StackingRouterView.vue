@@ -156,6 +156,7 @@ router.useListener('replace', ({ fullPath }) => {
 	position: relative;
 	width: 100%;
 	height: 100%;
+	background: var(--MI-universal-page-bg, transparent);
 }
 
 .tab {
@@ -211,7 +212,7 @@ router.useListener('replace', ({ fullPath }) => {
 			flex: 1;
 			width: 100%;
 			height: 100%;
-			background: var(--MI_THEME-bg);
+			background: var(--MI-universal-scroll-bg, var(--MI_THEME-bg));
 		}
 	}
 }

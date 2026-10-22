@@ -388,3 +388,7 @@ schedulePostList: "予約投稿一覧"
 _permissions:
   "read:notes-schedule": "予約投稿を見る"
   "write:notes-schedule": "予約投稿を作成・削除する"
+standardUiBackground: "通常画面の背景"
+themeBackground: "テーマの背景"
+customWallpaperNotSet: "壁紙に使う画像を選択してください。"
+wallpaperImageOnly: "壁紙には画像ファイルを選択してください。"

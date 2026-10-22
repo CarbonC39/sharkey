@@ -505,6 +505,10 @@ _externalNavigationWarning:
   trustThisDomain: "Trust this domain on this device in the future"
 
 remoteFollowersWarning: "Remote followers may have incomplete or outdated activity"
+standardUiBackground: "Standard layout background"
+themeBackground: "Theme background"
+customWallpaperNotSet: "Choose an image to use as your wallpaper."
+wallpaperImageOnly: "Choose an image file for the wallpaper."
 
 _auth:
   allowed: "Allowed"

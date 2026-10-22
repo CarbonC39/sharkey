@@ -68,7 +68,7 @@ const emit = defineEmits<{
 	}
 
 	&:not(.noGap) {
-		background: var(--MI_THEME-bg);
+		background: var(--MI-universal-timeline-bg, var(--MI_THEME-bg));
 
 		.note {
 			background: color-mix(in srgb, var(--MI_THEME-panel) 65%, transparent);

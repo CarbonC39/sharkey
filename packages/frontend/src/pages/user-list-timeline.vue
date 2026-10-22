@@ -146,7 +146,7 @@ definePage(() => ({
 }
 
 .tl {
-	background: var(--MI_THEME-bg);
+	background: var(--MI-universal-timeline-bg, var(--MI_THEME-bg));
 	border-radius: var(--MI-radius);
 	overflow: clip;
 }

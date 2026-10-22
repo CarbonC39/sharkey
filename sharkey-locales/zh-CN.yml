@@ -503,6 +503,10 @@ _externalNavigationWarning:
   trustThisDomain: "在本设备上永久信任该网站"
 
 remoteFollowersWarning: "远程用户的活动记录可能不完整或已过时"
+standardUiBackground: "普通界面背景"
+themeBackground: "主题背景"
+customWallpaperNotSet: "请选择一张图片作为壁纸。"
+wallpaperImageOnly: "壁纸只能使用图片文件。"
 
 _auth:
   allowed: "已允许"

@@ -7,7 +7,7 @@ SPDX-License-Identifier: AGPL-3.0-only
 <div :class="[$style.root, { '_forceShrinkSpacer': deviceKind === 'smartphone' }]">
 	<XTitlebar v-if="prefer.r.showTitlebar.value" style="flex-shrink: 0;"/>
 
-	<div :class="$style.nonTitlebarArea">
+	<div :class="[$style.nonTitlebarArea, { [$style.withWallpaper]: wallpaper != null }]" :style="{ backgroundImage: wallpaper != null ? `url(${JSON.stringify(wallpaper)})` : undefined }">
 		<XSidebar v-if="!isMobile" :class="$style.sidebar" :showWidgetButton="!isDesktop" @widgetButtonClick="widgetsShowing = true"/>
 
 		<div :class="[$style.contents, !isMobile && prefer.r.showTitlebar.value ? $style.withSidebarAndTitlebar : null]" @contextmenu.stop="onContextmenu">
@@ -49,6 +49,7 @@ import { miLocalStorage } from '@/local-storage.js';
 import { mainRouter } from '@/router.js';
 import { prefer } from '@/preferences.js';
 import { shouldSuggestRestoreBackup } from '@/preferences/utility.js';
+import { getStaticImageUrl } from '@/utility/media-proxy.js';
 import { DI } from '@/di.js';
 
 const XWidgets = defineAsyncComponent(() => import('./_common_/widgets.vue'));
@@ -56,6 +57,12 @@ const XStatusBars = defineAsyncComponent(() => import('@/ui/_common_/statusbars.
 const XAnnouncements = defineAsyncComponent(() => import('@/ui/_common_/announcements.vue'));
 
 const isRoot = computed(() => mainRouter.currentRoute.value.name === 'index');
+const wallpaper = computed(() => {
+	const source = prefer.r['universal.wallpaperSource'].value;
+	const image = source === 'profile' ? $i?.backgroundUrl : source === 'custom' ? prefer.r['universal.wallpaper'].value : null;
+	if (image == null) return null;
+	return prefer.r.disableShowingAnimatedImages.value ? getStaticImageUrl(image) : image;
+});
 
 const DESKTOP_THRESHOLD = 1100;
 const MOBILE_THRESHOLD = 500;
@@ -142,6 +149,20 @@ $widgets-hide-threshold: 1090px;
 	display: flex;
 	flex: 1;
 	min-height: 0;
+
+	&.withWallpaper {
+		background-color: var(--MI_THEME-bg);
+		background-position: center;
+		background-repeat: no-repeat;
+		background-size: cover;
+		--MI-universal-page-bg: color-mix(in srgb, var(--MI_THEME-bg) 72%, transparent);
+		--MI-universal-scroll-bg: transparent;
+		--MI-universal-timeline-bg: transparent;
+
+		.contents.withSidebarAndTitlebar {
+			background: transparent;
+		}
+	}
 }
 
 .sidebar {
@@ -180,7 +201,7 @@ $widgets-hide-threshold: 1090px;
 	overflow: auto;
 	padding: var(--MI-margin) var(--MI-margin) calc(var(--MI-margin) + env(safe-area-inset-bottom, 0px));
 	border-left: solid 0.5px var(--MI_THEME-divider);
-	background: var(--MI_THEME-bg);
+	background: var(--MI-universal-page-bg, var(--MI_THEME-bg));
 
 	@media (max-width: $widgets-hide-threshold) {
 		display: none;

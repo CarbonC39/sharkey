@@ -187,6 +187,31 @@ SPDX-License-Identifier: AGPL-3.0-only
 			</MkSwitch>
 		</SearchMarker>
 
+		<SearchMarker :keywords="['wallpaper', 'background', 'profile']">
+			<FormSection>
+				<template #label><SearchLabel>{{ i18n.ts.standardUiBackground }}</SearchLabel></template>
+				<div class="_gaps_s">
+					<MkPreferenceContainer k="universal.wallpaperSource">
+						<MkRadios v-model="wallpaperSource">
+							<option value="theme">{{ i18n.ts.themeBackground }}</option>
+							<option value="profile">{{ i18n.ts._deck.useProfileBackground }}</option>
+							<option value="custom">{{ i18n.ts._deck.customWallpaper }}</option>
+						</MkRadios>
+					</MkPreferenceContainer>
+					<p v-if="wallpaperSource === 'profile' && $i?.backgroundUrl == null" :class="$style.wallpaperHint">{{ i18n.ts._deck.profileBackgroundNotSet }}</p>
+					<p v-else-if="wallpaperSource === 'custom' && wallpaper == null" :class="$style.wallpaperHint">{{ i18n.ts.customWallpaperNotSet }}</p>
+					<img v-if="wallpaperPreview != null" :class="$style.wallpaperPreview" :src="wallpaperPreview" :alt="i18n.ts.standardUiBackground"/>
+					<MkButton v-if="wallpaperSource === 'profile' && $i?.backgroundUrl == null" link to="/settings/profile">{{ i18n.ts._profile.changeBackground }}</MkButton>
+					<MkPreferenceContainer v-if="wallpaperSource === 'custom'" k="universal.wallpaper">
+						<div class="_buttons">
+							<MkButton @click="setWallpaper">{{ i18n.ts.setWallpaper }}</MkButton>
+							<MkButton v-if="wallpaper != null" @click="removeWallpaper">{{ i18n.ts.removeWallpaper }}</MkButton>
+						</div>
+					</MkPreferenceContainer>
+				</div>
+			</FormSection>
+		</SearchMarker>
+
 		<FormSection>
 			<div class="_formLinksGrid">
 				<FormLink to="/settings/theme/manage"><template #icon><i class="ti ti-tool"></i></template>{{ i18n.ts._theme.manage }}<template #suffix>{{ themesCount }}</template></FormLink>
@@ -206,6 +231,9 @@ import defaultLightTheme from '@@/themes/l-light.json5';
 import defaultDarkTheme from '@@/themes/d-green-lime.json5';
 import type { Theme } from '@/theme.js';
 import MkSwitch from '@/components/MkSwitch.vue';
+import MkRadios from '@/components/MkRadios.vue';
+import MkButton from '@/components/MkButton.vue';
+import MkPreferenceContainer from '@/components/MkPreferenceContainer.vue';
 import FormSection from '@/components/form/section.vue';
 import FormLink from '@/components/form/link.vue';
 import MkFolder from '@/components/MkFolder.vue';
@@ -218,6 +246,10 @@ import { instance } from '@/instance.js';
 import { uniqueBy } from '@/utility/array.js';
 import { definePage } from '@/page.js';
 import { prefer } from '@/preferences.js';
+import { selectFile } from '@/utility/select-file.js';
+import { getStaticImageUrl } from '@/utility/media-proxy.js';
+import { $i } from '@/i.js';
+import * as os from '@/os.js';
 
 const installedThemes = getThemesRef();
 const builtinThemes = getBuiltinThemesRef();
@@ -259,7 +291,30 @@ const lightThemeId = computed({
 
 const darkMode = computed(store.makeGetterSetter('darkMode'));
 const syncDeviceDarkMode = prefer.model('syncDeviceDarkMode');
+const wallpaperSource = prefer.model('universal.wallpaperSource');
+const wallpaper = prefer.model('universal.wallpaper');
+const wallpaperPreview = computed(() => {
+	const image = wallpaperSource.value === 'profile' ? $i?.backgroundUrl : wallpaperSource.value === 'custom' ? wallpaper.value : null;
+	if (image == null) return null;
+	return prefer.r.disableShowingAnimatedImages.value ? getStaticImageUrl(image) : image;
+});
 const themesCount = installedThemes.value.length;
+
+async function setWallpaper(ev: MouseEvent) {
+	const file = await selectFile(ev.currentTarget ?? ev.target, i18n.ts.background);
+	if (file == null) return;
+	if (!file.type.startsWith('image/')) {
+		os.alert({ type: 'error', title: i18n.ts.invalidValue, text: i18n.ts.wallpaperImageOnly });
+		return;
+	}
+	wallpaper.value = file.url;
+	wallpaperSource.value = 'custom';
+}
+
+function removeWallpaper() {
+	wallpaper.value = null;
+	wallpaperSource.value = 'theme';
+}
 
 watch(syncDeviceDarkMode, () => {
 	if (syncDeviceDarkMode.value) {
@@ -296,6 +351,21 @@ definePage(() => ({
 	display: grid;
 	grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
 	gap: var(--MI-margin);
+}
+
+.wallpaperPreview {
+	width: min(100%, 320px);
+	max-height: 180px;
+	aspect-ratio: 16 / 9;
+	object-fit: cover;
+	border: 1px solid var(--MI_THEME-divider);
+	border-radius: var(--MI-radius);
+}
+
+.wallpaperHint {
+	margin: 0;
+	font-size: 0.85em;
+	color: color(from var(--MI_THEME-fg) srgb r g b / 0.75);
 }
 
 .themeItemOuter {

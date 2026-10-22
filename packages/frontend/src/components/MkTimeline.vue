@@ -379,7 +379,7 @@ defineExpose({
 	}
 
 	&:not(.noGap) {
-		background: var(--MI_THEME-bg);
+		background: var(--MI-universal-timeline-bg, var(--MI_THEME-bg));
 
 		.note {
 			background: var(--MI_THEME-panel);

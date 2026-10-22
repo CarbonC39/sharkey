@@ -13082,6 +13082,22 @@ export interface Locale extends ILocale {
      */
     "remoteFollowersWarning": string;
     /**
+     * Standard layout background
+     */
+    "standardUiBackground": string;
+    /**
+     * Theme background
+     */
+    "themeBackground": string;
+    /**
+     * Choose an image to use as your wallpaper.
+     */
+    "customWallpaperNotSet": string;
+    /**
+     * Choose an image file for the wallpaper.
+     */
+    "wallpaperImageOnly": string;
+    /**
      * Select a follow relationship...
      */
     "selectFollowRelationship": string;

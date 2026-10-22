@@ -400,6 +400,12 @@ export const PREF_DEF = {
 	'deck.useProfileBackground': {
 		default: false,
 	},
+	'universal.wallpaperSource': {
+		default: 'theme' as 'theme' | 'profile' | 'custom',
+	},
+	'universal.wallpaper': {
+		default: null as string | null,
+	},
 
 	'chat.showSenderName': {
 		default: false,
